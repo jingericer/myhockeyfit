@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920-6">
+  <link rel="stylesheet" href="styles.css?v=20260920-7">
 </head>
 <body>
   <header class="topbar">
@@ -258,7 +258,16 @@
         <p>Complete the stick profile, open the guided camera and take one standing photo. HockeyFit checks whether the stick reaches the chin to nose fitting zone without sending the photo to a server.</p>
         <button type="button" id="startPhotoFit">Start with my profile</button>
       </div>
-      <div class="phone-mock" aria-hidden="true"><div class="scan-line"></div><svg class="preview-person" viewBox="0 0 160 290"><ellipse cx="80" cy="38" rx="18" ry="22"/><path d="M58 67Q80 56 102 67L113 132Q106 151 98 166L108 255M102 82Q124 103 128 137M58 82Q36 103 32 137M62 132Q70 153 71 166L54 255"/></svg><div class="fit-zone">CHIN TO NOSE FIT ZONE</div></div>
+      <div class="phone-mock" aria-hidden="true">
+        <div class="scan-line"></div>
+        <svg class="preview-person" viewBox="0 0 160 290">
+          <ellipse cx="80" cy="39" rx="16" ry="20"/>
+          <path d="M62 69Q80 59 98 69Q106 92 104 123Q103 144 96 158L111 251Q106 260 97 252L80 176L63 252Q54 260 49 251L64 158Q57 144 56 123Q54 92 62 69Z"/>
+          <path d="M62 76Q45 91 36 126Q35 139 42 145Q48 145 51 136L64 101M98 76Q115 91 124 126Q125 139 118 145Q112 145 109 136L96 101"/>
+          <path d="M64 158Q80 165 96 158"/>
+        </svg>
+        <div class="fit-zone">CHIN TO NOSE</div>
+      </div>
     </section>
 
     <section class="community-band" aria-labelledby="communityTitle">
@@ -302,6 +311,6 @@
       <button type="button" class="use-result-button" id="finishPhotoFit" hidden>See result</button>
     </div>
   </div>
-  <script src="app.js?v=20260920-6"></script>
+  <script src="app.js?v=20260920-7"></script>
 </body>
 </html>
