@@ -1,6 +1,38 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
+const equipmentHome = $('#equipmentHome');
+const equipmentChoices = $('#equipmentChoices');
+const shinGuardsComing = $('#shinGuardsComing');
+
+function showEquipmentHome() {
+  equipmentHome.hidden = false;
+  equipmentChoices.hidden = false;
+  shinGuardsComing.hidden = true;
+  $$('.app-view').forEach(element => { element.hidden = true; });
+  document.body.classList.remove('camera-open');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showStickFinder() {
+  equipmentHome.hidden = true;
+  $$('.app-view').forEach(element => { element.hidden = false; });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+$('#openStickFinder').addEventListener('click', showStickFinder);
+$('#openShinGuards').addEventListener('click', () => {
+  equipmentChoices.hidden = true;
+  shinGuardsComing.hidden = false;
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+$('#backToEquipment').addEventListener('click', showEquipmentHome);
+$('#returnToEquipment').addEventListener('click', showEquipmentHome);
+$$('.app-view .brand').forEach(link => link.addEventListener('click', event => {
+  event.preventDefault();
+  showEquipmentHome();
+}));
+
 const productFamilies = [
   { brand:'CCM', name:'Ribcor Trigger 60', kick:'Low', tiers:['recreational','developing'], prices:{Youth:89.99,Junior:99.99,Intermediate:109.99,Senior:109.99}, flexes:[20,30,40,50,55,65,70,75,85], url:'https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks' },
   { brand:'CCM', name:'Tacks XF 70', kick:'Mid', tiers:['recreational','developing'], prices:{Youth:109.99,Junior:119.99,Intermediate:129.99,Senior:129.99}, flexes:[30,40,50,55,65,70,75,85], url:'https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks' },

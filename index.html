@@ -9,10 +9,59 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920-7">
+  <link rel="stylesheet" href="styles.css?v=20260920-9">
 </head>
 <body>
-  <header class="topbar">
+  <section class="equipment-home" id="equipmentHome" aria-labelledby="equipmentHomeTitle">
+    <div class="equipment-home-hero">
+      <a class="equipment-brand" href="#equipmentHome" aria-label="MyHockeyFit home">
+        <span class="equipment-brand-mark" aria-hidden="true">✓</span>
+        <span>MYHOCKEYFIT</span>
+      </a>
+      <div>
+        <p>Your game. Your fit.</p>
+        <h1 id="equipmentHomeTitle">Find your fit.</h1>
+        <span>Choose one piece of equipment to get started.</span>
+      </div>
+    </div>
+    <div class="equipment-home-body" id="equipmentChoices">
+      <p class="equipment-kicker">Equipment</p>
+      <h2>What are you fitting today?</h2>
+      <div class="equipment-list">
+        <button class="equipment-row" type="button" id="openStickFinder">
+          <span class="equipment-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M34.5 5.5 19 36.5M17.5 36.5h13l8-5.5"/><path d="m29.5 8 5 2.5"/></svg>
+          </span>
+          <span class="equipment-copy"><b>Hockey Stick</b><small>Length, flex, kick point and ranked recommendations</small></span>
+          <span class="equipment-arrow" aria-hidden="true">→</span>
+        </button>
+        <button class="equipment-row" type="button" id="openShinGuards">
+          <span class="equipment-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M16 8h16l4 8-3 23H15l-3-23Z"/><path d="M15 18h18M16 31h16M20 8l-2 31M28 8l2 31"/></svg>
+          </span>
+          <span class="equipment-copy"><b>Shin Guards</b><small>Size, knee position, coverage and mobility</small></span>
+          <span class="equipment-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+      <div class="equipment-coming">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="m24 5 15 8v20l-15 10L9 33V13Z"/><path d="m9 13 15 9 15-9M24 22v21M16 9l15 9"/><path d="M35 29h8M39 25v8"/></svg>
+        <span><b>More gear is coming</b><small>Skates, gloves, helmets and shoulder pads</small></span>
+      </div>
+    </div>
+    <div class="equipment-coming-page" id="shinGuardsComing" hidden>
+      <button type="button" class="equipment-back" id="backToEquipment"><span aria-hidden="true">←</span> Equipment</button>
+      <span class="coming-page-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><path d="M16 8h16l4 8-3 23H15l-3-23Z"/><path d="M15 18h18M16 31h16M20 8l-2 31M28 8l2 31"/></svg>
+      </span>
+      <p class="equipment-kicker">Coming soon</p>
+      <h2>Shin Guard Fit</h2>
+      <p>We are building a simple guide for sizing, knee placement, coverage and mobility.</p>
+      <button type="button" class="equipment-primary" id="returnToEquipment">Choose another item</button>
+    </div>
+    <p class="equipment-community">Built for young players, families and hockey communities.</p>
+  </section>
+
+  <header class="topbar app-view" hidden>
     <a class="brand" href="#top" aria-label="HockeyFit home">
       <span class="brand-mark" aria-hidden="true"><span></span></span>
       <span>HOCKEY<span>FIT</span></span>
@@ -25,7 +74,7 @@
     <span class="sr-only" id="photoHint">Photo Fit beta is available after completing the stick profile.</span>
   </header>
 
-  <main id="top">
+  <main id="top" class="app-view" hidden>
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">Your game. Your fit.</p>
@@ -285,7 +334,7 @@
     </section>
   </main>
 
-  <footer><a class="brand" href="#top"><span class="brand-mark"><span></span></span><span>HOCKEY<span>FIT</span></span></a><p>A free community project created by Eric J.</p><small>Independent guide. Not affiliated with Bauer, CCM, or any hockey association.</small></footer>
+  <footer class="app-view" hidden><a class="brand" href="#top"><span class="brand-mark"><span></span></span><span>HOCKEY<span>FIT</span></span></a><p>A free community project created by Eric J.</p><small>Independent guide. Not affiliated with Bauer, CCM, or any hockey association.</small></footer>
 
   <div class="toast" id="toast" role="status">Complete your profile to use Photo Fit.</div>
   <div class="camera-modal" id="cameraModal" role="dialog" aria-modal="true" aria-labelledby="cameraTitle" hidden>
@@ -311,6 +360,6 @@
       <button type="button" class="use-result-button" id="finishPhotoFit" hidden>See result</button>
     </div>
   </div>
-  <script src="app.js?v=20260920-7"></script>
+  <script src="app.js?v=20260920-9"></script>
 </body>
 </html>
