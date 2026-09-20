@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920-9">
+  <link rel="stylesheet" href="styles.css?v=20260920-12">
 </head>
 <body>
   <section class="equipment-home" id="equipmentHome" aria-labelledby="equipmentHomeTitle">
@@ -30,28 +30,28 @@
       <div class="equipment-list">
         <button class="equipment-row" type="button" id="openStickFinder">
           <span class="equipment-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><path d="M34.5 5.5 19 36.5M17.5 36.5h13l8-5.5"/><path d="m29.5 8 5 2.5"/></svg>
+            <svg viewBox="0 0 96 96"><path d="M78 7Q82 3 85 6Q86 8 83 12L47 65Q40 77 30 79L12 81Q6 81 6 76V72Q6 68 12 68L29 67Q36 67 41 60Z"/><path d="m13 69 1 11m6-12 1 11m6-12 2 11m5-13 3 11M74 13l6 4"/><ellipse cx="65" cy="81" rx="11" ry="3"/><path d="M54 81v5c0 4 22 4 22 0v-5"/></svg>
           </span>
           <span class="equipment-copy"><b>Hockey Stick</b><small>Length, flex, kick point and ranked recommendations</small></span>
           <span class="equipment-arrow" aria-hidden="true">→</span>
         </button>
         <button class="equipment-row" type="button" id="openShinGuards">
           <span class="equipment-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><path d="M16 8h16l4 8-3 23H15l-3-23Z"/><path d="M15 18h18M16 31h16M20 8l-2 31M28 8l2 31"/></svg>
+            <svg viewBox="0 0 96 96"><g id="shin-pad-outline"><path d="M13 19 11 8Q14 5 20 13Q28 10 35 13Q41 5 43 9L41 22Q46 32 42 46L36 84Q28 80 19 84L12 47Q8 32 13 19Z"/><path d="M16 22Q27 16 38 22L40 32Q38 43 28 44Q18 43 14 33Z"/><path d="M19 27Q28 24 35 28M21 37h13M16 48l7 25M39 48l-7 25M24 49h8l-3 27h-2ZM19 84v5q8-5 17 0v-5"/></g><use href="#shin-pad-outline" transform="translate(43 0)"/></svg>
           </span>
           <span class="equipment-copy"><b>Shin Guards</b><small>Size, knee position, coverage and mobility</small></span>
           <span class="equipment-arrow" aria-hidden="true">→</span>
         </button>
       </div>
       <div class="equipment-coming">
-        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="m24 5 15 8v20l-15 10L9 33V13Z"/><path d="m9 13 15 9 15-9M24 22v21M16 9l15 9"/><path d="M35 29h8M39 25v8"/></svg>
+        <svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 12Q64 18 71 10L74 43Q75 51 84 58Q91 65 85 70H15Q6 68 10 61Q12 56 26 51L38 44Q45 34 43 16Z"/><path d="M52 18q5 20-6 32L28 59M43 29l13 3M41 36l13 3M37 43l13 3M31 49l12 4M13 63h72M23 71v8m17-8v8m27-8v8m13-8v8M14 79h72q4 0 4-4M12 85h72q8 0 8-9"/></svg>
         <span><b>More gear is coming</b><small>Skates, gloves, helmets and shoulder pads</small></span>
       </div>
     </div>
     <div class="equipment-coming-page" id="shinGuardsComing" hidden>
       <button type="button" class="equipment-back" id="backToEquipment"><span aria-hidden="true">←</span> Equipment</button>
       <span class="coming-page-icon" aria-hidden="true">
-        <svg viewBox="0 0 48 48"><path d="M16 8h16l4 8-3 23H15l-3-23Z"/><path d="M15 18h18M16 31h16M20 8l-2 31M28 8l2 31"/></svg>
+        <svg viewBox="0 0 96 96"><g id="coming-shin-pad-outline"><path d="M13 19 11 8Q14 5 20 13Q28 10 35 13Q41 5 43 9L41 22Q46 32 42 46L36 84Q28 80 19 84L12 47Q8 32 13 19Z"/><path d="M16 22Q27 16 38 22L40 32Q38 43 28 44Q18 43 14 33Z"/><path d="M19 27Q28 24 35 28M21 37h13M16 48l7 25M39 48l-7 25M24 49h8l-3 27h-2ZM19 84v5q8-5 17 0v-5"/></g><use href="#coming-shin-pad-outline" transform="translate(43 0)"/></svg>
       </span>
       <p class="equipment-kicker">Coming soon</p>
       <h2>Shin Guard Fit</h2>
@@ -207,10 +207,11 @@
           <div class="field-block">
             <span class="field-label">Shooting side</span>
             <div class="segmented">
-              <label><input type="radio" name="hand" value="left" checked><span>Left shot</span></label>
-              <label><input type="radio" name="hand" value="right"><span>Right shot</span></label>
-              <label><input type="radio" name="hand" value="unsure"><span>Not sure</span></label>
+              <label><input type="radio" name="hand" value="left" aria-describedby="shootingSideHelp" checked><span>Left shot</span></label>
+              <label><input type="radio" name="hand" value="right" aria-describedby="shootingSideHelp"><span>Right shot</span></label>
+              <label><input type="radio" name="hand" value="unsure" aria-describedby="shootingSideHelp"><span>Not sure</span></label>
             </div>
+            <p class="shooting-side-help" id="shootingSideHelp">Left shot: right hand at the top, left hand lower. Right shot: left hand at the top, right hand lower.</p>
           </div>
         </section>
 
@@ -343,14 +344,17 @@
       <video id="fitCameraVideo" playsinline muted></video>
       <canvas id="fitCameraCanvas" aria-label="Captured fit photo" hidden></canvas>
       <div class="fit-camera-overlay" id="fitCameraOverlay" aria-hidden="true">
-        <svg class="person-guide-svg" viewBox="0 0 360 700" preserveAspectRatio="none">
-          <ellipse cx="180" cy="83" rx="38" ry="46"/>
-          <path d="M137 139Q180 116 223 139Q239 194 235 276Q228 336 211 380L231 628Q218 650 201 628L180 417L159 628Q142 650 129 628L149 380Q132 336 125 276Q121 194 137 139Z"/>
-          <path d="M137 151Q98 190 82 280Q87 296 100 284L145 207M223 151Q262 190 278 280Q273 296 260 284L215 207"/>
-          <path d="M126 276Q180 294 234 276"/>
+        <svg class="person-guide-svg" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid meet">
+          <g class="player-outline">
+            <path d="M139 79C139 35 201 35 201 79L197 101Q192 118 170 120Q148 118 143 101Z"/>
+            <path d="M154 118V134L116 146Q104 151 101 173L80 261L73 301Q73 315 84 316Q94 315 96 303L107 266L124 213L124 281Q114 317 124 350L133 446L125 573L112 587Q108 599 116 606H150L158 587L163 454L170 366L178 454L184 587L190 606H224Q232 599 228 587L215 573L207 446L216 350Q226 317 216 281L216 213L233 266L244 303Q246 315 256 316Q267 315 267 301L260 261L239 173Q236 151 224 146L186 134V118"/>
+            <path d="M124 281Q170 292 216 281M125 573l29 5M186 578l29-5"/>
+          </g>
+          <g class="face-levels"><path d="M209 97H307M209 120H307"/><text x="215" y="90">NOSE</text><text x="215" y="137">CHIN</text></g>
+          <path class="camera-stick-outline" d="M292 109V585L328 594Q335 599 329 606H282V109Z"/>
+          <path class="camera-ground-line" d="M25 606H337"/>
+          <text class="camera-ground-label" x="180" y="628" text-anchor="middle">FEET AND BLADE ON THE SAME FLOOR</text>
         </svg>
-        <div class="fit-zone-guide"><span>NOSE</span><b>GOOD FIT ZONE</b><span>CHIN</span></div>
-        <div class="stick-guide"><span>STICK</span></div><div class="floor-guide">BLADE ON FLOOR</div>
       </div>
       <div class="tap-hint" id="stickTopHint" hidden>Tap the top of the stick</div>
     </div>
@@ -360,6 +364,6 @@
       <button type="button" class="use-result-button" id="finishPhotoFit" hidden>See result</button>
     </div>
   </div>
-  <script src="app.js?v=20260920-9"></script>
+  <script src="app.js?v=20260920-12"></script>
 </body>
 </html>

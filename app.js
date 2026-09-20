@@ -235,14 +235,13 @@ function buildResults() {
   $('#sortResults').value = 'match'; renderProducts();
 }
 
-const photoFitState = { stream:null, captured:false, stickTop:null };
+const photoFitState = { stream:null, captured:false, stickTop:null, nose:null, chin:null };
 
-function assessGuidedStickFit(stickTopY,canvasHeight) {
-  if (!Number.isFinite(stickTopY) || !canvasHeight) return {status:'unclear',title:'Tap the top of the stick',detail:'One tap is needed so HockeyFit does not mistake a shelf or door frame for the stick.'};
-  const ratio = stickTopY/canvasHeight;
-  if (ratio < .145) return {status:'long',title:'The stick looks too long',detail:'The stick top is above the nose guide. Compare the next shorter stock length before cutting.'};
-  if (ratio > .215) return {status:'short',title:'The stick looks too short',detail:'The stick top is below the chin guide. Compare the next longer stock length.'};
-  return {status:'good',title:'The stick length looks good',detail:'The stick top falls inside the chin to nose guide while the player is standing in skates.'};
+function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY) {
+  if (![stickTopY,canvasHeight,noseY,chinY].every(Number.isFinite) || canvasHeight<=0 || noseY<0 || chinY<=noseY || chinY>canvasHeight || stickTopY<0 || stickTopY>canvasHeight) return {status:'unclear',title:'Check the photo markers',detail:'Mark the actual nose, chin and stick top. Retake if the face or complete stick is not visible.'};
+  if (stickTopY < noseY) return {status:'long',title:'The stick may be too long',detail:'The marked stick top is above the marked nose. Confirm the length in person before cutting.'};
+  if (stickTopY > chinY) return {status:'short',title:'The stick may be too short',detail:'The marked stick top is below the marked chin. Compare a longer stick in store.'};
+  return {status:'good',title:'The length is within the starting range',detail:'The marked stick top is between the marked chin and nose. This estimate assumes skates on, an upright stick and the blade touching the same floor as the skates.'};
 }
 
 function stopFitCamera() {
@@ -252,11 +251,13 @@ function stopFitCamera() {
 
 function setCapturedMode(captured) {
   photoFitState.captured = captured; photoFitState.stickTop = null;
+  photoFitState.nose = null; photoFitState.chin = null;
   $('#fitCameraVideo').hidden = captured; $('#fitCameraCanvas').hidden = !captured;
   $('#fitCameraOverlay').hidden = captured; $('#stickTopHint').hidden = !captured;
   $('#captureFitPhoto').hidden = captured; $('#retakeFitPhoto').hidden = !captured; $('#finishPhotoFit').hidden = !captured;
   $('#finishPhotoFit').disabled = true;
-  $('#cameraInstruction').textContent = captured ? 'Tap the top of the stick' : 'Fit the player inside the guide';
+  $('#cameraInstruction').textContent = captured ? 'Mark the actual points on the photo' : 'Skates on. Stand straight. Hold the stick upright.';
+  $('#stickTopHint').textContent = '1 of 3: Tap the tip of the nose';
 }
 
 async function openFitCamera() {
@@ -281,22 +282,33 @@ $('#closeFitCamera').addEventListener('click',closeFitCamera);
 $('#captureFitPhoto').addEventListener('click', () => {
   const video = $('#fitCameraVideo'), canvas = $('#fitCameraCanvas');
   if (!video.videoWidth || !video.videoHeight) return;
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+  const rect=video.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const scale=Math.max(rect.width/video.videoWidth,rect.height/video.videoHeight);
+  const sw=rect.width/scale, sh=rect.height/scale;
+  canvas.width=Math.round(sw); canvas.height=Math.round(sh);
+  canvas.getContext('2d').drawImage(video,(video.videoWidth-sw)/2,(video.videoHeight-sh)/2,sw,sh,0,0,canvas.width,canvas.height);
   stopFitCamera(); setCapturedMode(true);
 });
 $('#retakeFitPhoto').addEventListener('click',openFitCamera);
 $('#fitCameraCanvas').addEventListener('click', event => {
   if (!photoFitState.captured) return;
   const canvas = event.currentTarget, rect = canvas.getBoundingClientRect();
-  photoFitState.stickTop = {x:(event.clientX-rect.left)*canvas.width/rect.width,y:(event.clientY-rect.top)*canvas.height/rect.height};
+  if (photoFitState.stickTop) return;
+  const scale=Math.min(rect.width/canvas.width,rect.height/canvas.height);
+  const point={x:(event.clientX-rect.left-(rect.width-canvas.width*scale)/2)/scale,y:(event.clientY-rect.top-(rect.height-canvas.height*scale)/2)/scale};
+  if (point.x<0 || point.y<0 || point.x>canvas.width || point.y>canvas.height) return;
+  const key=!photoFitState.nose?'nose':!photoFitState.chin?'chin':'stickTop';
+  if (key==='chin' && point.y<=photoFitState.nose.y) { $('#stickTopHint').textContent='Tap the chin below the nose, or choose Retake'; return; }
+  photoFitState[key]=point;
   const context = canvas.getContext('2d');
-  context.beginPath(); context.arc(photoFitState.stickTop.x,photoFitState.stickTop.y,Math.max(10,canvas.width*.013),0,Math.PI*2);
+  context.beginPath(); context.arc(point.x,point.y,Math.max(3,canvas.width*.006),0,Math.PI*2);
   context.fillStyle='#1ee6d1'; context.fill(); context.lineWidth=Math.max(3,canvas.width*.004); context.strokeStyle='#071426'; context.stroke();
-  $('#stickTopHint').textContent='Stick top marked'; $('#finishPhotoFit').disabled=false;
+  $('#stickTopHint').textContent=key==='nose'?'2 of 3: Tap the bottom of the chin':key==='chin'?'3 of 3: Tap the top of the stick':'All points marked. See result or Retake to correct.';
+  $('#finishPhotoFit').disabled=!photoFitState.stickTop;
 });
 $('#finishPhotoFit').addEventListener('click', () => {
-  const canvas=$('#fitCameraCanvas'), fit=assessGuidedStickFit(photoFitState.stickTop?.y,canvas.height), result=$('#photoFitResult');
+  const canvas=$('#fitCameraCanvas'), fit=assessGuidedStickFit(photoFitState.stickTop?.y,canvas.height,photoFitState.nose?.y,photoFitState.chin?.y), result=$('#photoFitResult');
   closeFitCamera(); result.hidden=false; result.className=`photo-fit-result ${fit.status==='good'?'good':'adjust'}`;
   result.innerHTML=`<span class="photo-verdict">${fit.status==='good'?'Good photo fit':'Adjustment recommended'}</span><h4>${fit.title}</h4><p>${fit.detail}</p><p class="flex-limit"><b>Photo scope:</b> this checks standing length only. Confirm the recommended ${state.fit ? state.fit.flex : ''} flex by loading the exact stick before buying or cutting.</p>`;
   result.scrollIntoView({behavior:'smooth',block:'nearest'});
