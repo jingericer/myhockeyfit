@@ -2,7 +2,7 @@
 
 Mobile-first, brand-neutral hockey stick fitting assistant. It recommends a starting shaft length, flex, stick class, kick point, curve family, and up to 15 ranked options across major stick brands.
 
-HockeyFit is a free community project by Eric Jing, a Kanata U12 Rep hockey player. The first release is intended for new hockey families and future pilots with local minor hockey associations. It has no account, advertising, or server-side collection of player answers. This is an independent project, not a team or association endorsement.
+HockeyFit is a free community project by Eric J, a Kanata U12 Rep hockey player. The first release is intended for new hockey families and future pilots with local minor hockey associations. It has no account, advertising, or server-side collection of player answers. This is an independent project, not a team or association endorsement.
 
 Open `index.html` directly or serve the repository root with any static HTTP server.
 
