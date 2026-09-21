@@ -10,6 +10,80 @@
   const data={level:'',budget:150,tongue:'',cm:'',checks:{},sort:'price',count:5};
   let page=0;
   const photos={};
+  let cameraStream=null,cameraSession=0,cameraTarget=null,cameraReturnFocus=null;
+  const camera=document.createElement('dialog');
+  camera.className='sg-camera';
+  camera.setAttribute('aria-labelledby','sg-camera-title');
+  camera.innerHTML='<header><div><h2 id="sg-camera-title">Shin guard photo</h2><p id="sg-camera-hint"></p></div><button type="button" data-camera="close" aria-label="Close camera">✕</button></header><div class="sg-camera-view"><video autoplay muted playsinline></video><canvas hidden></canvas><div class="sg-camera-guide" aria-hidden="true"><span>KNEE IN FRAME</span><span>ENTIRE PAD AND SKATE</span></div></div><p class="sg-camera-status" role="status">Starting camera…</p><footer><button type="button" data-camera="capture" disabled>Take photo</button><button type="button" data-camera="retake" hidden>Retake</button><button type="button" data-camera="use" hidden>Use photo</button></footer>';
+  document.body.append(camera);
+  function stopCameraStream(){
+    cameraStream?.getTracks().forEach(track=>track.stop());cameraStream=null;
+    camera.querySelector('video').srcObject=null;
+  }
+  function closeCamera(){
+    cameraSession++;stopCameraStream();
+    if(camera.open)camera.close();
+    const canvas=camera.querySelector('canvas');canvas.width=0;canvas.height=0;
+    document.body.classList.remove('sg-camera-open');
+    cameraReturnFocus?.isConnected&&cameraReturnFocus.focus();
+  }
+  async function openCamera(key){
+    stopCameraStream();const session=++cameraSession;cameraTarget=key;
+    if(!camera.open){cameraReturnFocus=document.activeElement;camera.showModal();}
+    document.body.classList.add('sg-camera-open');
+    const video=camera.querySelector('video'),canvas=camera.querySelector('canvas');
+    canvas.width=0;canvas.height=0;canvas.hidden=true;video.hidden=false;
+    camera.querySelector('.sg-camera-guide').hidden=false;
+    camera.querySelector('#sg-camera-title').textContent=key==='front'?'Front view':'Side view';
+    camera.querySelector('#sg-camera-hint').textContent=key==='front'?'Face the camera. Include both knees, pads and skates.':'Turn sideways and gently bend your knees. Include the knee, pad and skate.';
+    camera.querySelector('.sg-camera-status').textContent='Starting camera…';
+    camera.querySelector('[data-camera=capture]').hidden=false;
+    camera.querySelector('[data-camera=capture]').disabled=true;
+    camera.querySelector('[data-camera=retake]').hidden=true;
+    camera.querySelector('[data-camera=use]').hidden=true;
+    try{
+      if(!navigator.mediaDevices?.getUserMedia)throw new Error('unavailable');
+      const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1080},height:{ideal:1440}}});
+      if(session!==cameraSession){stream.getTracks().forEach(track=>track.stop());return;}
+      cameraStream=stream;video.srcObject=stream;await video.play();
+      if(session!==cameraSession)return;
+      camera.querySelector('[data-camera=capture]').disabled=false;
+      camera.querySelector('.sg-camera-status').textContent='Ask someone to take the photo. Stay supported on a stable surface with skate guards.';
+    }catch(error){
+      if(session!==cameraSession)return;
+      stopCameraStream();
+      camera.querySelector('.sg-camera-status').textContent='Camera unavailable. Allow camera access on this HTTPS site, or close this window and choose a photo from your device.';
+    }
+  }
+  camera.addEventListener('cancel',event=>{event.preventDefault();closeCamera();});
+  camera.addEventListener('click',event=>{
+    const action=event.target.closest('button')?.dataset.camera;
+    if(action==='close'){closeCamera();return;}
+    if(action==='retake'){openCamera(cameraTarget);return;}
+    const canvas=camera.querySelector('canvas'),video=camera.querySelector('video');
+    if(action==='capture'){
+      if(!video.videoWidth||!video.videoHeight)return;
+      canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+      canvas.getContext('2d').drawImage(video,0,0);
+      stopCameraStream();video.hidden=true;canvas.hidden=false;
+      camera.querySelector('.sg-camera-guide').hidden=true;
+      camera.querySelector('[data-camera=capture]').hidden=true;
+      camera.querySelector('[data-camera=retake]').hidden=false;
+      camera.querySelector('[data-camera=use]').hidden=false;
+      camera.querySelector('[data-camera=use]').disabled=false;
+      camera.querySelector('.sg-camera-status').textContent='Check that the knee, whole pad and skate are visible. This photo stays in this tab.';
+    }
+    if(action==='use'){
+      const session=cameraSession,key=cameraTarget;
+      camera.querySelector('[data-camera=use]').disabled=true;
+      canvas.toBlob(blob=>{
+        if(session!==cameraSession)return;
+        if(!blob){camera.querySelector('[data-camera=use]').disabled=false;camera.querySelector('.sg-camera-status').textContent='Could not save this preview. Please retake the photo.';return;}
+        if(photos[key])URL.revokeObjectURL(photos[key]);photos[key]=URL.createObjectURL(blob);
+        closeCamera();render(false);root.querySelector('[data-open-camera="'+key+'"]').focus();
+      },'image/jpeg',0.9);
+    }
+  });
   const source='https://ca.bauer.com/pages/size-guide-shin-pads';
   function sizesFor(cm) {
     if(!Number.isFinite(cm)||cm<15||cm>65) return [];
@@ -28,6 +102,7 @@
     return {title:'Your fit checks look promising',detail:'You reported a centred knee, coverage, secure straps and comfortable movement. This is a self check, not a safety certification or automatic photo assessment.'};
   }
   function clearPhotos() {
+    closeCamera();
     Object.values(photos).forEach(URL.revokeObjectURL); Object.keys(photos).forEach(k=>delete photos[k]);
     root.querySelectorAll('.sg-photos img').forEach(img=>{img.removeAttribute('src');img.hidden=true;});
     root.querySelectorAll('input[type=file]').forEach(input=>input.value='');
@@ -59,7 +134,7 @@
       ['movement','Movement','On a stable nonslip surface with suitable skate guards, hold a support and bend into a skating stance. Can you move comfortably without the pad hitting the boot?']
     ];
     return '<h2 tabindex="-1">Try them on in store</h2><p>Use your own skates and usual tongue position. Check both legs. Ask an adult or fitter to help.</p>'+
-      '<details><summary>Add optional photos</summary><p>Take one front view and one side view with knees bent. Show the knee, entire pad and skate. These photos are for your own visual check, not automatic analysis. They stay in this tab and are cleared when you leave this tool.</p><div class="sg-photos">'+['front','side'].map(key=>'<div><label class="sg-field">'+(key==='front'?'Front view':'Side view')+'<input type="file" accept="image/*" capture="environment" data-photo="'+key+'"></label><img alt="'+key+' view for your fit check" '+(photos[key]?'src="'+photos[key]+'"':'hidden')+'><button type="button" class="sg-delete" data-delete="'+key+'">Clear photo</button></div>').join('')+'</div></details>'+
+      '<section aria-label="Optional fit photos"><h3>Take your fit photos</h3><p>Use the camera for a front and side view, or choose existing photos. Photos are optional and help you answer the checks below. They stay in this tab and are cleared when you leave this tool. There is no automatic photo analysis.</p><div class="sg-photos">'+['front','side'].map(key=>'<div><h3>'+(key==='front'?'Front view':'Side view')+'</h3><button type="button" class="sg-action" data-open-camera="'+key+'">Open camera</button><label class="sg-field">Or choose a photo<input type="file" accept="image/*" data-photo="'+key+'"></label><img alt="'+key+' view for your fit check" '+(photos[key]?'src="'+photos[key]+'"':'hidden')+'><button type="button" class="sg-delete" data-delete="'+key+'">Clear photo</button></div>').join('')+'</div></section>'+
       questions.map(([key,title,hint])=>'<fieldset class="sg-options"><legend>'+title+'</legend><p>'+hint+'</p>'+[['yes','Yes'],['no','No'],['unsure','Not sure']].map(([value,label])=>'<label><input type="radio" name="sg-check-'+key+'" value="'+value+'" '+(data.checks[key]===value?'checked':'')+'>'+label+'</label>').join('')+'</fieldset>').join('')+
       '<div id="sg-verdict" role="status"></div>';
   }
@@ -93,6 +168,7 @@
   });
   root.addEventListener('click',e=>{
     const button=e.target.closest('button');if(!button)return;
+    if(button.dataset.openCamera){openCamera(button.dataset.openCamera);return;}
     if(button.dataset.delete){const key=button.dataset.delete;if(photos[key])URL.revokeObjectURL(photos[key]);delete photos[key];render(false);return;}
     const action=button.dataset.action;
     if(action==='home'){clearPhotos();showEquipmentHome();return;}
