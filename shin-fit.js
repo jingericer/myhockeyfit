@@ -102,6 +102,7 @@
     return {title:'Your fit checks look promising',detail:'You reported a centred knee, coverage, secure straps and comfortable movement. This is a self check, not a safety certification or automatic photo assessment.'};
   }
   function clearPhotos() {
+    window.ShinAR?.stop();
     closeCamera();
     Object.values(photos).forEach(URL.revokeObjectURL); Object.keys(photos).forEach(k=>delete photos[k]);
     root.querySelectorAll('.sg-photos img').forEach(img=>{img.removeAttribute('src');img.hidden=true;});
@@ -146,6 +147,7 @@
       results,checkPage
     ];
     root.innerHTML='<div class="shin-fit"><button class="equipment-back" type="button" data-action="home">← Equipment</button><p class="sg-progress">Step '+(page+1)+' of 5 · '+['Player','Tongue','Measure','Results','Store check'][page]+'</p><progress value="'+(page+1)+'" max="5" aria-label="Shin fit progress"></progress>'+screens[page]()+'<p id="sg-error" class="sg-error" role="alert"></p><div class="sg-actions"><button type="button" class="sg-back" data-action="back" '+(page===0?'hidden':'')+'>Back</button><button type="button" data-action="next">'+(page===2?'Get my starting size':page===3?'Check in store':page===4?'See fit conclusion':'Next →')+'</button></div></div>';
+    if(page===2)root.querySelector('.sg-units').insertAdjacentHTML('beforebegin','<button type="button" class="sg-action" data-action="ar">Measure with AR · Beta</button><p>On supported phones, aim and set two points in real space. AR can miss the leg or detect the background. Confirm the estimate with a tape. If AR is unavailable, enter the length below.</p><p id="sg-ar-note" role="status"></p>');
     if(focus&&!root.hidden)root.querySelector('h2').focus();
   }
   root.addEventListener('input',e=>{
@@ -171,6 +173,15 @@
     if(button.dataset.openCamera){openCamera(button.dataset.openCamera);return;}
     if(button.dataset.delete){const key=button.dataset.delete;if(photos[key])URL.revokeObjectURL(photos[key]);delete photos[key];render(false);return;}
     const action=button.dataset.action;
+    if(action==='ar'){
+      const report=text=>{const note=root.querySelector('#sg-ar-note');if(note)note.textContent=text;};
+      if(!window.ShinAR){report('AR could not load. Refresh or enter your measurement below.');return;}
+      window.ShinAR.start(cm=>{
+        if(page!==2||root.hidden)return;
+        data.cm=cm;root.querySelector('#sg-cm').value=cm;root.querySelector('#sg-in').value=Number((cm/2.54).toFixed(2));
+        report('AR estimate entered. Confirm with a tape, especially near a size boundary.');
+      },report);return;
+    }
     if(action==='home'){clearPhotos();showEquipmentHome();return;}
     if(action==='more'){data.count+=5;render(false);return;}
     if(action==='back'){if(page===4)clearPhotos();page=Math.max(0,page-1);render();return;}
