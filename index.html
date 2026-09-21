@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920-12">
+  <link rel="stylesheet" href="styles.css?v=20260921-1">
 </head>
 <body>
   <section class="equipment-home" id="equipmentHome" aria-labelledby="equipmentHomeTitle">
@@ -262,7 +262,8 @@
           </div>
           <div id="stickResults" class="stick-results"></div>
           <button type="button" class="show-more-button" id="showMoreButton">Show 5 more <span>↓</span></button>
-          <div class="price-note">HockeyFit rating measures how well a stick matches the player profile. It is not a retailer review score. All 15 shortlisted options score above 4.0 out of 5 for this profile. Prices are reference Canadian prices checked September 2026. Availability, exact flex and curve combinations, and sale prices vary by retailer.</div>
+          <p class="price-note" id="budgetResultsNote" role="status"></p>
+          <div class="price-note">HockeyFit rating is a profile ranking indicator, not a retailer review score. Prices are reference Canadian prices. Availability, exact flex and curve combinations, and sale prices vary by retailer.</div>
           <section class="store-fit-card photo-fit-tool" id="photoFitTool" aria-labelledby="storeFitTitle">
             <div class="store-fit-intro">
               <span class="soon-badge beta-badge">Beta</span>
@@ -364,6 +365,6 @@
       <button type="button" class="use-result-button" id="finishPhotoFit" hidden>See result</button>
     </div>
   </div>
-  <script src="app.js?v=20260920-12"></script>
+  <script src="app.js?v=20260921-1"></script>
 </body>
 </html>

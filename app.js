@@ -164,20 +164,19 @@ function rankProducts(profile, fit) {
     score -= Math.min(28, Math.abs(productTier-desiredTier)*10);
     score -= product.kick === fit.kick ? 0 : (fit.kick === 'Hybrid' ? 4 : 13);
     score -= flexGap * 2.5;
-    if (price > profile.budget) score -= Math.min(22, 7 + (price-profile.budget)/18);
     if (profile.position === 'defense' && product.kick === 'Mid') score += 4;
     if (profile.position === 'forward' && product.kick === 'Low') score += 3;
     if (product.name.includes('Jetspeed')) score += fit.kick === 'Hybrid' ? 8 : 1;
     if (product.name.includes('Ribcor') && fit.kick === 'Low') score += 5;
     if ((product.name.includes('Tacks') || product.name.includes('Supreme')) && fit.kick === 'Mid') score += 5;
     return {...product, price, score:Math.round(score), productTier, hasFlex, optionFlex};
-  }).filter(p => Number.isFinite(p.price)).sort((a,b) => b.score-a.score).slice(0,15)
+  }).filter(p => Number.isFinite(p.price) && (profile.budget === 999 || p.price <= profile.budget)).sort((a,b) => b.score-a.score).slice(0,15)
     .map((product,index) => ({...product, matchRank:index+1, matchRating:Math.max(4.1, round(5-index*.06,1))}));
 }
 
 function reasonFor(product, profile, fit) {
   const shotText = fit.kick === 'Low' ? 'quick release and easy loading' : fit.kick === 'Mid' ? 'power shots and strong loading' : 'a versatile mix of release and power';
-  const budgetText = product.price <= profile.budget ? 'fits your selected budget' : 'sits above your budget as a performance upgrade';
+  const budgetText = profile.budget === 999 ? 'matches your unrestricted price selection' : 'fits your selected budget';
   const flexText = product.hasFlex ? '' : ` Closest listed flex is ${product.optionFlex}.`;
   return `${product.kick}-kick profile suits ${shotText}; ${budgetText}.${flexText}`;
 }
@@ -206,11 +205,12 @@ function renderProducts(sort='match') {
         <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Curve <b>${fit.curve.split(' / ')[0]}</b></span><span>HockeyFit rating <b>${p.matchRating.toFixed(1)} / 5</b></span></div>
       </div>
       <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${p.url}" target="_blank" rel="noopener">Check availability ↗</a></div>
-    </article>`).join('');
+    </article>`).join('') || '<p>No sticks in our current catalog meet this budget for the recommended size. Try a higher budget or check local sale prices.</p>';
+  $('#budgetResultsNote').textContent = `${state.results.length} options${profile.budget === 999 ? ' across all prices' : ` at CAD $${profile.budget} or less`}. Prices exclude tax and shipping.`;
   const more = $('#showMoreButton');
   const remaining = state.results.length-state.visibleCount;
   more.hidden = remaining <= 0;
-  more.innerHTML = `Show 5 more <span>↓</span>${remaining > 0 ? ` <small>${remaining} remaining</small>` : ''}`;
+  more.innerHTML = `Show ${Math.min(5,Math.max(0,remaining))} more <span>↓</span>${remaining > 0 ? ` <small>${remaining} remaining</small>` : ''}`;
 }
 function buildResults() {
   const p = collectProfile();
