@@ -1,5 +1,7 @@
 # Experimental AR shin measurement
 
+**Retired from the website:** The measurement step now provides instructions for Apple's iPhone Measure app and manual entry. index.html no longer loads shin-ar.js. The experimental implementation below is retained only for reference, not offered as a working site feature.
+
 The measurement step offers **Measure with AR · Beta**. It starts an immersive WebXR AR session, places two spatial points with the centre aiming target, calculates their Euclidean separation in metres and converts it to centimetres and inches. The user must confirm that the markers stayed on the anatomical endpoints before copying an estimate into the form. Existing manual input remains available.
 
 ## Device requirements
