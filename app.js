@@ -6,6 +6,7 @@ const equipmentChoices = $('#equipmentChoices');
 const shinGuardsComing = $('#shinGuardsComing');
 
 function showEquipmentHome() {
+  window.ShinFit?.clearPhotos();
   equipmentHome.hidden = false;
   equipmentChoices.hidden = false;
   shinGuardsComing.hidden = true;
@@ -15,6 +16,7 @@ function showEquipmentHome() {
 }
 
 function showStickFinder() {
+  window.ShinFit?.clearPhotos();
   equipmentHome.hidden = true;
   $$('.app-view').forEach(element => { element.hidden = false; });
   window.scrollTo({top:0, behavior:'smooth'});
