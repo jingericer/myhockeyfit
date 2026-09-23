@@ -7,7 +7,7 @@
     {size:14,min:41,max:43.5},{size:15,min:43.5,max:46},{size:16,min:46,max:48.5},
     {size:17,min:48.5,max:51.5},{size:18,min:51.5,max:Infinity}
   ];
-  const data={level:'',budget:150,tongue:'',cm:'',checks:{},sort:'price',count:5};
+  const data={level:'',budget:150,tongue:'',cm:'',checks:{},brand:'all',sort:'price',count:5};
   let page=0;
   const photos={};
   let cameraStream=null,cameraSession=0,cameraTarget=null,cameraReturnFocus=null;
@@ -91,7 +91,7 @@
   }
   function shortlist(catalog,sizes,budget) {
     return catalog.flatMap(product=>{
-      const variants=product.variants.filter(v=>sizes.includes(v.size)&&Number.isFinite(v.price)&&v.price<=budget&&v.available);
+      const variants=product.variants.filter(v=>sizes.includes(v.size)&&Number.isFinite(v.price)&&v.price<=budget&&(v.available===true||v.available===null));
       return variants.length?[{...product,variants,price:Math.min(...variants.map(v=>v.price))}]:[];
     }).sort((a,b)=>a.price-b.price||a.name.localeCompare(b.name));
   }
@@ -108,21 +108,29 @@
     root.querySelectorAll('input[type=file]').forEach(input=>input.value='');
   }
   const radio=(name,items,value)=>'<fieldset class="sg-options"><legend>'+({level:'Playing level',tongue:'Choose your usual setup'}[name]||'Choose one')+'</legend><div class="option-grid two-wide">'+items.map(([key,label,hint],index)=>'<label class="choice line"><input type="radio" name="sg-'+name+'" value="'+key+'" '+(value===key?'checked':'')+'><span><i>'+String(index+1).padStart(2,'0')+'</i><b>'+label+'</b>'+(hint?'<small>'+hint+'</small>':'')+'</span></label>').join('')+'</div></fieldset>';
+  function reviewRow(product) {
+    const r=product.review;
+    if(!r) return '<div class="customer-reviews"><small>No verified rating yet</small></div>';
+    return '<div class="customer-reviews"><b>Customer reviews</b><a href="'+r.url+'" target="_blank" rel="noopener">'+r.rating.toFixed(1)+'/5 · '+r.count+' '+(r.count===1?'review':'reviews')+' · '+r.source+' ↗</a><small>'+(r.count<5?'Few reviews · ':'')+'Checked '+r.checkedOn+'</small></div>';
+  }
   function results() {
     const sizes=sizesFor(Number(data.cm));
     let products=shortlist(window.shinCatalog||[],sizes,Number(data.budget));
+    if(data.brand!=='all')products=products.filter(p=>p.brand===data.brand);
+    if(data.sort==='reviews')products.sort((a,b)=>(b.review?.rating||0)-(a.review?.rating||0)||(b.review?.count||0)-(a.review?.count||0)||a.price-b.price);
+    if(data.sort==='priceDesc')products.sort((a,b)=>b.price-a.price);
     if(data.sort==='name')products.sort((a,b)=>a.name.localeCompare(b.name));
     const tongue={outside:'Tongue outside: check the overlap stays comfortable.',tucked:'Tongue tucked: bend your knees and check for pressure at the boot.',unsure:'Try both tongue positions with a fitter.'}[data.tongue];
     const setup={outside:'Outside',tucked:'Tucked in',unsure:'Compare'}[data.tongue];
     return '<div class="sg-results"><div class="result-hero"><div><p class="section-kicker">YOUR SHIN GUARD FIT</p><h2 tabindex="-1">Your starting fit</h2><p>Start with this size. Confirm in store.</p></div><button type="button" class="edit-button" data-action="edit">Edit answers</button></div>'+
       '<div class="fit-metrics"><article><small>STARTING SIZE</small><strong class="sg-size">'+(sizes.length?sizes.map(s=>s+'″').join(' / '):'Check fit')+'</strong><p>Bauer size chart</p></article><article><small>SHIN LENGTH</small><strong>'+Number(data.cm).toFixed(1)+'<span> cm</span></strong><p>'+(Number(data.cm)/2.54).toFixed(2)+' inches measured</p></article><article><small>SKATE TONGUE</small><strong>'+setup+'</strong><p>Check with your skates on</p></article><article><small>BUDGET · CAD</small><strong>$'+Number(data.budget)+'</strong><p>Before tax and shipping</p></article></div>'+
       '<div class="fit-note"><b>Fit check:</b> '+(sizes.length?tongue+' Do not size up just for growth.':'Outside the supported chart. Remeasure or ask a fitter.')+'</div>'+
-      '<div class="rank-head"><div><p class="section-kicker">OPTIONS IN YOUR SIZE</p><h3>Your shin guards</h3></div><label class="sort-select">Sort<select id="sg-sort"><option value="price" '+(data.sort==='price'?'selected':'')+'>Price: low to high</option><option value="name" '+(data.sort==='name'?'selected':'')+'>Model name</option></select></label></div>'+
-      '<div class="stick-results">'+products.slice(0,data.count).map((p,index)=>'<article class="stick-card"><div class="stick-rank" aria-label="Option '+(index+1)+'">#'+(index+1)+'</div><div class="stick-main"><div class="badges"><span class="badge">Bauer</span><span class="badge">Size match</span></div><h4>'+p.name.replace(/^BAUER /,'')+'</h4><p>Try with your own skates. Check knee position and coverage.</p><div class="spec-row"><span>Size <b>'+p.variants.map(v=>v.size+'″').join(' / ')+'</b></span><span>Budget <b>Within $'+Number(data.budget)+'</b></span></div>'+(new Set(p.variants.map(v=>v.price)).size>1?'<p>'+p.variants.map(v=>v.size+'″: $'+v.price.toFixed(2)).join(' · ')+'</p>':'')+'</div><div class="stick-buy"><small>'+(new Set(p.variants.map(v=>v.price)).size>1?'FROM CAD':'REFERENCE CAD')+'</small><strong>$'+p.price.toFixed(2)+'</strong><a href="'+p.url+'" target="_blank" rel="noopener">View this model ↗</a></div></article>').join('')+
+      '<div class="rank-head"><div><p class="section-kicker">SIZES TO TRY</p><h3>Your shin guards</h3></div><div class="sg-filters"><label class="sort-select">Brand<select id="sg-brand">'+[["all","All brands"],["Bauer","Bauer"],["CCM","CCM"],["Warrior","Warrior"],["Sherwood","Sherwood"]].map(([v,l])=>'<option value="'+v+'" '+(data.brand===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><label class="sort-select">Sort<select id="sg-sort"><option value="price" '+(data.sort==='price'?'selected':'')+'>Price: low to high</option><option value="reviews" '+(data.sort==='reviews'?'selected':'')+'>Customer rating</option><option value="priceDesc" '+(data.sort==='priceDesc'?'selected':'')+'>Price: high to low</option><option value="name" '+(data.sort==='name'?'selected':'')+'>Model name</option></select></label></div></div>'+
+      '<div class="stick-results">'+products.slice(0,data.count).map((p,index)=>'<article class="stick-card"><div class="stick-rank" aria-label="Option '+(index+1)+'">#'+(index+1)+'</div><div class="stick-main"><div class="badges"><span class="badge">'+p.brand+'</span><span class="badge">Try this size</span></div><h4>'+p.name.replace(/^(BAUER|CCM|SHERWOOD|WARRIOR) /,'')+'</h4><p>'+(p.brand==='Bauer'?'Try with your own skates.':'Same numbered size. Confirm brand sizing in store.')+'</p><div class="spec-row"><span>Size <b>'+p.variants.map(v=>v.size+'″').join(' / ')+'</b></span><span>Budget <b>Within $'+Number(data.budget)+'</b></span></div>'+(new Set(p.variants.map(v=>v.price)).size>1?'<p>'+p.variants.map(v=>v.size+'″: $'+v.price.toFixed(2)).join(' · ')+'</p>':'')+reviewRow(p)+'</div><div class="stick-buy"><small>'+(new Set(p.variants.map(v=>v.price)).size>1?'FROM CAD':'REFERENCE CAD')+'</small><strong>$'+p.price.toFixed(2)+'</strong><a href="'+p.url+'" target="_blank" rel="noopener">View this model ↗</a><small>'+p.source+' · '+p.checkedOn+'</small>'+(p.variants.some(v=>v.available===null)?'<small>Check size stock</small>':'')+'</div></article>').join('')+
       (!products.length?'<p class="sg-empty">No models match this size and budget. Edit your answers or check local sales.</p>':'')+'</div>'+
       (products.length>data.count?'<div class="sg-more"><button type="button" class="show-more-button" data-action="more">Show '+Math.min(5,products.length-data.count)+' more <span>↓</span></button></div>':'')+
-      '<div class="price-note">'+products.length+' models · Bauer Canada · Prices checked Sep 21, 2026</div>'+
-      '<div class="source-box"><details><summary>How this result works</summary><p><a href="'+source+'" target="_blank" rel="noopener">Bauer measurement and size guide ↗</a>. Measurement ranges determine your starting size. At a boundary, try both sizes. Tongue position does not change the size automatically.</p><p>Numbers show list order, not ratings. Products match size and budget; protection needs an in store check'+(data.level==='rep'?', especially for competitive play':'')+'. Confirm current prices and stock.</p></details></div></div>';
+      '<div class="price-note">'+products.length+' options · CAD before tax · Confirm current price and stock</div>'+
+      '<div class="source-box"><details><summary>How this result works</summary><p><a href="'+source+'" target="_blank" rel="noopener">Bauer measurement and size guide ↗</a>. Measurement ranges determine your starting size. At a boundary, try both sizes. Tongue position does not change the size automatically.</p><p>Numbers show list order, not ratings. Buyer ratings come from the linked retailer and cover the listed model and age group, not an individual size. Missing ratings stay blank and sort last. Other brands use the same numbered size for comparison only; the Bauer chart does not verify their fit. Options stay within budget; protection needs an in store check'+(data.level==='rep'?', especially for competitive play':'')+'. Confirm current prices and stock.</p></details></div></div>';
   }
   function checkPage() {
     const questions=[
@@ -156,7 +164,8 @@
     if(e.target.name==='sg-level')data.level=e.target.value;
     if(e.target.name==='sg-tongue')data.tongue=e.target.value;
     if(e.target.name.startsWith('sg-check-')){data.checks[e.target.name.slice(9)]=e.target.value;root.querySelector('#sg-verdict').textContent='';}
-    if(e.target.id==='sg-sort'){data.sort=e.target.value;render(false);}
+    if(e.target.id==='sg-brand'){data.brand=e.target.value;data.count=5;render(false);}
+    if(e.target.id==='sg-sort'){data.sort=e.target.value;data.count=5;render(false);}
     if(e.target.dataset.photo){
       const key=e.target.dataset.photo,file=e.target.files[0];if(!file)return;
       if(!file.type.startsWith('image/')||file.size>20*1024*1024){root.querySelector('#sg-error').textContent='Choose an image smaller than 20 MB.';e.target.value='';return;}
