@@ -236,7 +236,7 @@
             <span class="field-label">Preferred stick feel</span>
             <div class="feel-options">
               <label><input type="radio" name="feel" value="easy"><span><i>↯</i><span><b>Easy to load</b><small>Softer feel, faster release, good for youth</small></span></span></label>
-              <label><input type="radio" name="feel" value="balanced" checked><span><i>◆</i><span><b>Balanced</b><small>The most common starting point</small></span><em>Most players</em></span></label>
+              <label><input type="radio" name="feel" value="balanced" checked><span><i>◆</i><span><b>Balanced</b><small>A starting point to try</small></span></span></label>
               <label><input type="radio" name="feel" value="stiff"><span><i>▲</i><span><b>Firm & powerful</b><small>More resistance for strong shooters</small></span></span></label>
             </div>
           </div>
@@ -270,12 +270,12 @@
 
           <div class="rank-head">
             <div><p class="section-kicker">Top 15 matched options</p><h3>Your ranked sticks</h3></div>
-            <label class="sort-select">Sort <select id="sortResults"><option value="match">Overall ranking</option><option value="rating">Rating: high to low</option><option value="price">Price: low to high</option><option value="level">Playing level</option></select></label>
+            <label class="sort-select">Sort <select id="sortResults"><option value="match">Recommended order</option><option value="price">Price: low to high</option><option value="level">Playing level</option></select></label>
           </div>
           <div id="stickResults" class="stick-results"></div>
           <button type="button" class="show-more-button" id="showMoreButton">Show 5 more <span>↓</span></button>
           <p class="price-note" id="budgetResultsNote" role="status"></p>
-          <div class="price-note">HockeyFit rating is a profile ranking indicator, not a retailer review score. Prices are reference Canadian prices. Availability, exact flex and curve combinations, and sale prices vary by retailer.</div>
+          <div class="price-note">Recommendation numbers reflect your answers, not buyer reviews or popularity. Confirm fit in store. Prices are reference CAD; check the exact size, flex, curve and stock at the retailer.</div>
           <section class="store-fit-card photo-fit-tool" id="photoFitTool" aria-labelledby="storeFitTitle">
             <div class="store-fit-intro">
               <span class="soon-badge beta-badge">Beta</span>
@@ -377,7 +377,7 @@
       <button type="button" class="use-result-button" id="finishPhotoFit" hidden>See result</button>
     </div>
   </div>
-  <script src="app.js?v=20260923-product-links"></script>
+  <script src="app.js?v=20260923-ranking-fix"></script>
   <script src="shin-data.js?v=20260921-1"></script>
   <script src="shin-fit.js?v=20260921-measure1"></script>
 </body>

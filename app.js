@@ -234,7 +234,7 @@ function rankProducts(profile, fit) {
     score -= flexGap * 2.5;
     return {...product, price, score:Math.round(score), productTier, hasFlex, optionFlex};
   }).filter(p => Number.isFinite(p.price) && (profile.budget === 999 || p.price <= profile.budget)).sort((a,b) => b.score-a.score).slice(0,15)
-    .map((product,index) => ({...product, matchRank:index+1, matchRating:Math.max(4.1, round(5-index*.06,1))}));
+    .map((product,index) => ({...product, matchRank:index+1}));
 }
 
 function reasonFor(product, profile, fit) {
@@ -245,28 +245,27 @@ function reasonFor(product, profile, fit) {
   return `${product.kick} kick offers ${response}; ${budgetText}. ${preference}${flexText}`;
 }
 function badgeFor(product, index, profile) {
-  if (product === state.results[0]) return '<span class="badge best">Best match</span>';
+  if (product === state.results[0]) return '<span class="badge best">First to compare</span>';
   if (product.price === Math.min(...state.results.map(x=>x.price))) return '<span class="badge">Budget pick</span>';
   if (product.productTier === 4) return '<span class="badge level">Elite option</span>';
-  if (product.name.includes('Jetspeed') || product.name.includes('Nexus')) return '<span class="badge">Most players pick</span>';
-  return '<span class="badge">Strong alternative</span>';
+  return '<span class="badge">Alternative</span>';
 }
 function renderProducts(sort='match') {
   state.sort = sort;
   let products = [...state.results];
-  if (sort === 'rating') products.sort((a,b)=>b.matchRating-a.matchRating || a.matchRank-b.matchRank);
+  if (sort === 'match') products.sort((a,b)=>a.matchRank-b.matchRank);
   if (sort === 'price') products.sort((a,b)=>a.price-b.price);
   if (sort === 'level') products.sort((a,b)=>a.productTier-b.productTier || b.score-a.score);
   products = products.slice(0,state.visibleCount);
   const profile = state.profile, fit = state.fit;
   $('#stickResults').innerHTML = products.map((p,index) => `
     <article class="stick-card">
-      <div class="stick-rank">${index+1}</div>
+      <div class="stick-rank" aria-label="Recommendation ${p.matchRank}">#${p.matchRank}</div>
       <div class="stick-main">
         <div class="badges">${badgeFor(p,index,profile)}<span class="badge">${p.brand}</span></div>
         <h4>${p.name} ${fit.stickClass}</h4>
         <p>${reasonFor(p,profile,fit)}</p>
-        <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Blade options <b>Check exact model</b></span><span>HockeyFit rating <b>${p.matchRating.toFixed(1)} / 5</b></span></div>
+        <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Blade options <b>Check exact model</b></span></div>
       </div>
       <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${productDestination(p,fit,profile).url}" target="_blank" rel="noopener" aria-label="${productDestination(p,fit,profile).kind === 'product' ? 'View' : 'Search for'} ${p.brand} ${p.name} ${fit.stickClass}">${productDestination(p,fit,profile).label}</a></div>
     </article>`).join('') || '<p>No sticks in our current catalog meet this budget for the recommended size. Try a higher budget or check local sale prices.</p>';
