@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923-preferences">
-  <link rel="stylesheet" href="shin-fit.css?v=20260921-ar1">
+  <link rel="stylesheet" href="styles.css?v=20260923-reviews1">
+  <link rel="stylesheet" href="shin-fit.css?v=20260923-style1">
 </head>
 <body>
   <section class="equipment-home" id="equipmentHome" aria-labelledby="equipmentHomeTitle">
@@ -270,12 +270,12 @@
 
           <div class="rank-head">
             <div><p class="section-kicker">Top 15 matched options</p><h3>Your ranked sticks</h3></div>
-            <label class="sort-select">Sort <select id="sortResults"><option value="match">Recommended order</option><option value="price">Price: low to high</option><option value="level">Playing level</option></select></label>
+            <label class="sort-select">Sort <select id="sortResults"><option value="match">Recommended order</option><option value="price">Price: low to high</option><option value="level">Playing level</option><option value="reviews">Customer rating</option></select></label>
           </div>
           <div id="stickResults" class="stick-results"></div>
           <button type="button" class="show-more-button" id="showMoreButton">Show 5 more <span>↓</span></button>
           <p class="price-note" id="budgetResultsNote" role="status"></p>
-          <div class="price-note">Recommendation numbers reflect your answers, not buyer reviews or popularity. Confirm fit in store. Prices are reference CAD; check the exact size, flex, curve and stock at the retailer.</div>
+          <div class="price-note"><label class="review-filter"><input id="reviewsOnly" type="checkbox"> Only reviews above 4/5</label><p>Recommendations use your answers. Reviews come from the linked stores.</p><details><summary>About ratings and prices</summary><p>Review snapshots collected September 23, 2026. Some pages combine sizes; see each rating’s label. Reviews are not all confirmed purchases and may include promotions. Few reviews mean limited evidence. Missing ratings stay blank.</p><p>Rating sort and filter use the first displayed source: a size specific page before a combined or unclear scope, then source name. Other collected sources remain visible. Sources are never averaged. Rating sort applies to your shortlist; unrated options appear last. The above 4/5 filter excludes unrated options.</p><p>Prices are reference CAD. Confirm the exact size, flex, curve, price and stock in store.</p></details></div>
           <section class="store-fit-card photo-fit-tool" id="photoFitTool" aria-labelledby="storeFitTitle">
             <div class="store-fit-intro">
               <span class="soon-badge beta-badge">Beta</span>
@@ -377,8 +377,9 @@
       <button type="button" class="use-result-button" id="finishPhotoFit" hidden>See result</button>
     </div>
   </div>
-  <script src="app.js?v=20260923-ranking-fix"></script>
+  <script src="review-data.js?v=20260923-reviews1"></script>
+  <script src="app.js?v=20260923-reviews1"></script>
   <script src="shin-data.js?v=20260921-1"></script>
-  <script src="shin-fit.js?v=20260921-measure1"></script>
+  <script src="shin-fit.js?v=20260923-style1"></script>
 </body>
 </html>

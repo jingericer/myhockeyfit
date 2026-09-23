@@ -181,7 +181,7 @@ function validateStepOne() {
 function showStep(step) {
   state.step = step;
   $$('.form-step').forEach(panel => panel.classList.toggle('active', Number(panel.dataset.step) === step));
-  $$('.steps li').forEach((dot, index) => {
+  $$('#fit .steps li').forEach((dot, index) => {
     dot.classList.toggle('active', index + 1 === step);
     dot.classList.toggle('done', index + 1 < step);
     if (index + 1 < step) $('span', dot).textContent = '✓'; else $('span', dot).textContent = index + 1;
@@ -190,7 +190,7 @@ function showStep(step) {
   $('#nextButton').innerHTML = step === 3 ? 'See my matches <span>→</span>' : 'Continue <span>→</span>';
   $('#formActions').style.display = step === 4 ? 'none' : 'flex';
   if (step === 4) buildResults();
-  if (window.innerWidth < 760) $('.steps').scrollIntoView({behavior:'smooth',block:'start'});
+  if (window.innerWidth < 760) $('#fit .steps').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function nearest(value, options) { return options.reduce((a,b) => Math.abs(b-value) < Math.abs(a-value) ? b : a); }
@@ -220,6 +220,16 @@ function calculateFit(p) {
 }
 
 const tierScore = {recreational:1,developing:2,competitive:3,elite:4};
+function reviewsFor(product, stickClass) {
+  return (window.stickReviewData?.records || []).filter(r => r.brand === product.brand && r.model === product.name && r.sizes.includes(stickClass) && r.count > 0 && r.rating > 0 && r.rating <= 5)
+    .sort((a,b) => Number(a.combined)-Number(b.combined) || a.source.localeCompare(b.source));
+}
+function customerReviews(product, stickClass) {
+  const reviews = reviewsFor(product,stickClass);
+  if (!reviews.length) return '';
+  const row = r => `<a href="${r.url}" target="_blank" rel="noopener">${r.rating.toFixed(2).replace(/0$/, '')}/5 · ${r.count} ${r.count === 1 ? 'review' : 'reviews'} · ${r.source} ↗</a><small>${r.scope}${r.count < 5 ? ' · Few reviews' : ''}</small>`;
+  return `<div class="customer-reviews"><b>Customer reviews</b>${row(reviews[0])}${reviews.length > 1 ? `<details><summary>Other source</summary>${reviews.slice(1).map(row).join('')}</details>` : ''}</div>`;
+}
 function rankProducts(profile, fit) {
   const desiredTier = tierScore[profile.level];
   return productFamilies.map(product => {
@@ -232,8 +242,9 @@ function rankProducts(profile, fit) {
     score -= Math.min(28, Math.abs(productTier-desiredTier)*10);
     score -= fit.kick === 'Compare' || product.kick === fit.kick ? 0 : (fit.kick === 'Hybrid' ? 4 : 13);
     score -= flexGap * 2.5;
-    return {...product, price, score:Math.round(score), productTier, hasFlex, optionFlex};
-  }).filter(p => Number.isFinite(p.price) && (profile.budget === 999 || p.price <= profile.budget)).sort((a,b) => b.score-a.score).slice(0,15)
+    const review = reviewsFor(product,fit.stickClass)[0];
+    return {...product, price, score:Math.round(score), productTier, hasFlex, optionFlex, review};
+  }).filter(p => Number.isFinite(p.price) && (profile.budget === 999 || p.price <= profile.budget) && (!profile.reviewsOnly || p.review?.rating > 4)).sort((a,b) => b.score-a.score).slice(0,15)
     .map((product,index) => ({...product, matchRank:index+1}));
 }
 
@@ -256,6 +267,7 @@ function renderProducts(sort='match') {
   if (sort === 'match') products.sort((a,b)=>a.matchRank-b.matchRank);
   if (sort === 'price') products.sort((a,b)=>a.price-b.price);
   if (sort === 'level') products.sort((a,b)=>a.productTier-b.productTier || b.score-a.score);
+  if (sort === 'reviews') products.sort((a,b)=>(b.review?.rating ?? -1)-(a.review?.rating ?? -1) || (b.review?.count ?? 0)-(a.review?.count ?? 0) || a.matchRank-b.matchRank);
   products = products.slice(0,state.visibleCount);
   const profile = state.profile, fit = state.fit;
   $('#stickResults').innerHTML = products.map((p,index) => `
@@ -265,10 +277,11 @@ function renderProducts(sort='match') {
         <div class="badges">${badgeFor(p,index,profile)}<span class="badge">${p.brand}</span></div>
         <h4>${p.name} ${fit.stickClass}</h4>
         <p>${reasonFor(p,profile,fit)}</p>
-        <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Blade options <b>Check exact model</b></span></div>
+        <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span></div>
+        ${customerReviews(p,fit.stickClass)}
       </div>
       <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${productDestination(p,fit,profile).url}" target="_blank" rel="noopener" aria-label="${productDestination(p,fit,profile).kind === 'product' ? 'View' : 'Search for'} ${p.brand} ${p.name} ${fit.stickClass}">${productDestination(p,fit,profile).label}</a></div>
-    </article>`).join('') || '<p>No sticks in our current catalog meet this budget for the recommended size. Try a higher budget or check local sale prices.</p>';
+    </article>`).join('') || '<p>No options meet these filters. Try turning off the review filter or changing your budget.</p>';
   $('#budgetResultsNote').textContent = `${state.results.length} options${profile.budget === 999 ? ' across all prices' : ` at CAD $${profile.budget} or less`}. Prices exclude tax and shipping.`;
   const more = $('#showMoreButton');
   const remaining = state.results.length-state.visibleCount;
@@ -279,6 +292,7 @@ function buildResults() {
   const p = collectProfile();
   const fit = calculateFit(p);
   state.profile = p; state.fit = fit; state.results = rankProducts(p,fit); state.visibleCount = 5; state.sort = 'match';
+  $('#reviewsOnly').checked = false;
   const position = p.position === 'defense' ? 'defense' : 'forward';
   $('#resultTitle').textContent = `${p.level[0].toUpperCase()+p.level.slice(1)} ${position} · ${fit.kick === 'Compare' ? 'compare release feels' : fit.kick.toLowerCase() + ' kick preference'}`;
   $('#resultSummary').textContent = p.feel === 'easy' ? 'A softer setup designed to help generate release with less force.' : p.feel === 'stiff' ? 'A firmer setup for a player who deliberately wants more resistance.' : 'A balanced setup that is easy to load without giving up stability.';
@@ -385,6 +399,12 @@ $('#backButton').addEventListener('click', () => showStep(Math.max(1,state.step-
 $('#editButton').addEventListener('click', () => showStep(1));
 $('#restartButton').addEventListener('click', () => { form.reset(); kg.value=36; syncWeight('kg'); cm.value=157; syncHeight('cm'); resetPhotoFit(); showStep(1); });
 $('#sortResults').addEventListener('change', e => renderProducts(e.target.value));
+$('#reviewsOnly').addEventListener('change', e => {
+  state.profile.reviewsOnly = e.target.checked;
+  state.results = rankProducts(state.profile,state.fit);
+  state.visibleCount = 5;
+  renderProducts(state.sort);
+});
 $('#showMoreButton').addEventListener('click', () => { state.visibleCount = Math.min(15,state.visibleCount+5); renderProducts(state.sort); });
 $('#photoButton').addEventListener('click', () => { const toast=$('#toast'); toast.textContent='Complete your profile, then use the Photo Fit beta below your results.'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2600); $('#photoFitIntro').scrollIntoView({behavior:'smooth'}); });
 $('#startPhotoFit').addEventListener('click', () => { showStep(1); $('.fit-shell').scrollIntoView({behavior:'smooth',block:'start'}); });
