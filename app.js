@@ -66,6 +66,75 @@ const productFamilies = [
   ,{ brand:'Sherwood', name:'REKKER Morph 1', kick:'Low', tiers:['competitive','elite'], prices:{Youth:159.99,Junior:239.99,Intermediate:319.99,Senior:349.99}, flexes:[30,40,50,55,65,75,85], url:'https://sherwoodhockey.com/collections/hockey-sticks' }
 ];
 
+// Exact model and size pages checked against official catalogs on 2026-09-23.
+const stickProductLinks = {
+  "CCM|Ribcor Trigger 60|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTR60-JR.html",
+  "CCM|Ribcor Trigger 60|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTR60-IN.html",
+  "CCM|Ribcor Trigger 60|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTR60-SR.html",
+  "CCM|Tacks XF 70|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXF70-JR.html",
+  "CCM|Tacks XF 70|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXF70-IN.html",
+  "CCM|Tacks XF 70|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXF70-SR.html",
+  "CCM|Tacks XF|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXF-JR.html",
+  "CCM|Tacks XF|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXF-IN.html",
+  "CCM|Tacks XF|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXF-SR.html",
+  "CCM|Ribcor Trigger Unleashed|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNL-JR.html",
+  "CCM|Ribcor Trigger Unleashed|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNL-IN.html",
+  "CCM|Ribcor Trigger Unleashed|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNL-SR.html",
+  "Bauer|Nexus Tracer|Junior": "https://ca.bauer.com/products/nexus-tracer-stick-junior",
+  "Bauer|Nexus Tracer|Intermediate": "https://ca.bauer.com/products/nexus-tracer-stick-intermediate",
+  "Bauer|Nexus Tracer|Senior": "https://ca.bauer.com/products/nexus-tracer-stick-senior",
+  "CCM|Ribcor Trigger Unleashed XT|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLXT-JR.html",
+  "CCM|Ribcor Trigger Unleashed XT|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLXT-IN.html",
+  "CCM|Ribcor Trigger Unleashed XT|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLXT-SR.html",
+  "Bauer|Vapor Twitch|Junior": "https://ca.bauer.com/products/bauer-twitch-grip-stick-junior",
+  "CCM|Tacks XF Pro|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXFP-JR.html",
+  "CCM|Tacks XF Pro|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXFP-IN.html",
+  "CCM|Tacks XF Pro|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Tacks-Sticks/HSXFP-SR.html",
+  "CCM|Jetspeed FT9 Pro|Youth": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/JetSpeed-Sticks/HSFT9P-YT.html",
+  "CCM|Jetspeed FT9 Pro|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/JetSpeed-Sticks/HSFT9P-JR.html",
+  "CCM|Jetspeed FT9 Pro|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/JetSpeed-Sticks/HSFT9P-IN.html",
+  "CCM|Jetspeed FT9 Pro|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/JetSpeed-Sticks/HSFT9P-SR.html",
+  "CCM|Ribcor Trigger Unleashed Pro|Youth": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLP-YT.html",
+  "CCM|Ribcor Trigger Unleashed Pro|Junior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLP-JR.html",
+  "CCM|Ribcor Trigger Unleashed Pro|Intermediate": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLP-IN.html",
+  "CCM|Ribcor Trigger Unleashed Pro|Senior": "https://ca.ccmhockey.com/en/Sticks/Shop-All-Sticks/Ribcor-Sticks/HSTRUNLP-SR.html",
+  "Bauer|Vapor Flylite|Youth": "https://ca.bauer.com/products/bauer-vapor-flylite-grip-stick-youth",
+  "Bauer|Vapor Flylite|Junior": "https://ca.bauer.com/products/bauer-vapor-flylite-grip-stick-junior",
+  "Bauer|Vapor Flylite|Intermediate": "https://ca.bauer.com/products/bauer-vapor-flylite-grip-stick-intermediate",
+  "Bauer|Vapor Flylite|Senior": "https://ca.bauer.com/products/bauer-vapor-flylite-grip-stick-senior",
+  "Bauer|Supreme Fuse|Youth": "https://ca.bauer.com/products/bauer-supreme-fuse-grip-stick-youth",
+  "Bauer|Supreme Fuse|Junior": "https://ca.bauer.com/products/bauer-supreme-fuse-grip-stick-junior",
+  "Bauer|Supreme Fuse|Intermediate": "https://ca.bauer.com/products/bauer-supreme-fuse-grip-stick-intermediate",
+  "Bauer|Supreme Fuse|Senior": "https://ca.bauer.com/products/bauer-supreme-fuse-grip-stick-senior",
+  "Sherwood|CODE Photon 3|Intermediate": "https://sherwoodhockey.com/products/sherwood-code-photon-3-intermediate-hockey-stick",
+  "Sherwood|CODE Photon 3|Senior": "https://sherwoodhockey.com/products/sherwood-code-photon-3-senior-hockey-stick",
+  "Sherwood|CODE Photon 2|Intermediate": "https://sherwoodhockey.com/products/sherwood-code-photon-2-intermediate-hockey-stick",
+  "Sherwood|CODE Photon 2|Senior": "https://sherwoodhockey.com/products/sherwood-code-photon-2-senior-hockey-stick",
+  "Sherwood|CODE Photon 1|Intermediate": "https://sherwoodhockey.com/products/sherwood-code-photon-1-intermediate-hockey-stick",
+  "Sherwood|CODE Photon 1|Senior": "https://sherwoodhockey.com/products/sherwood-code-photon-1-senior-hockey-stick",
+  "Sherwood|CODE Photon Pro|Junior": "https://sherwoodhockey.com/products/sherwood-code-photon-pro-junior-hockey-stick",
+  "Sherwood|CODE Photon Pro|Intermediate": "https://sherwoodhockey.com/products/sherwood-code-photon-pro-intermediate-hockey-stick",
+  "Sherwood|CODE Photon Pro|Senior": "https://sherwoodhockey.com/products/sherwood-code-photon-pro-senior-hockey-stick",
+  "Sherwood|REKKER Morph 3|Intermediate": "https://sherwoodhockey.com/products/sherwood-rekker-morph-3-intermediate-hockey-stick",
+  "Sherwood|REKKER Morph 3|Senior": "https://sherwoodhockey.com/products/sherwood-rekker-morph-3-senior-hockey-stick",
+  "Sherwood|REKKER Morph 2|Intermediate": "https://sherwoodhockey.com/products/sherwood-rekker-morph-2-intermediate-hockey-stick",
+  "Sherwood|REKKER Morph 2|Senior": "https://sherwoodhockey.com/products/sherwood-rekker-morph-2-senior-hockey-stick",
+  "Sherwood|REKKER Morph 1|Junior": "https://sherwoodhockey.com/products/sherwood-rekker-morph-1-junior-hockey-stick",
+  "Sherwood|REKKER Morph 1|Intermediate": "https://sherwoodhockey.com/products/sherwood-rekker-morph-1-intermediate-hockey-stick",
+  "Sherwood|REKKER Morph 1|Senior": "https://sherwoodhockey.com/products/sherwood-rekker-morph-1-senior-hockey-stick",
+  "TRUE|HZRDUS 7X4|Senior": "https://www.true-sports.com/en-ca/hzrdus-7x4-senior-hockey-stick.html",
+  "TRUE|HZRDUS 7X4|Intermediate": "https://www.hockeymonkey.ca/true-hockey-stick-hzrdus-7x4-int.html"
+};
+
+function productDestination(product, fit, profile) {
+  const key = `${product.brand}|${product.name}|${fit.stickClass}`;
+  const direct = stickProductLinks[key];
+  if (direct) return {url:direct, label:'View this model ↗', kind:'product'};
+  const hand = profile.hand === 'left' ? 'left handed' : profile.hand === 'right' ? 'right handed' : '';
+  const query = `${product.brand} ${product.name} ${fit.stickClass} hockey stick ${product.optionFlex} flex ${hand} Canada`.trim();
+  return {url:'https://www.google.com/search?q='+encodeURIComponent(query), label:'Search this model ↗', kind:'search'};
+}
+
 const state = { step: 1, results: [], fit: null, visibleCount: 5, sort: 'match' };
 const form = $('#fitForm');
 const kg = $('#weightKg');
@@ -199,7 +268,7 @@ function renderProducts(sort='match') {
         <p>${reasonFor(p,profile,fit)}</p>
         <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Blade options <b>Check exact model</b></span><span>HockeyFit rating <b>${p.matchRating.toFixed(1)} / 5</b></span></div>
       </div>
-      <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${p.url}" target="_blank" rel="noopener">Check availability ↗</a></div>
+      <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${productDestination(p,fit,profile).url}" target="_blank" rel="noopener" aria-label="${productDestination(p,fit,profile).kind === 'product' ? 'View' : 'Search for'} ${p.brand} ${p.name} ${fit.stickClass}">${productDestination(p,fit,profile).label}</a></div>
     </article>`).join('') || '<p>No sticks in our current catalog meet this budget for the recommended size. Try a higher budget or check local sale prices.</p>';
   $('#budgetResultsNote').textContent = `${state.results.length} options${profile.budget === 999 ? ' across all prices' : ` at CAD $${profile.budget} or less`}. Prices exclude tax and shipping.`;
   const more = $('#showMoreButton');
