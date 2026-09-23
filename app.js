@@ -126,7 +126,7 @@ function showStep(step) {
 
 function nearest(value, options) { return options.reduce((a,b) => Math.abs(b-value) < Math.abs(a-value) ? b : a); }
 function collectProfile() {
-  return { age:Number($('#age').value), experience:Number($('#experience').value), kg:Number(kg.value), lb:Number(lb.value), cm:Number(cm.value), position:selected('position'), level:selected('level'), shot:selected('shot'), hand:selected('hand'), feel:selected('feel'), budget:Number(selected('budget')) };
+  return { age:Number($('#age').value), experience:Number($('#experience').value), kg:Number(kg.value), lb:Number(lb.value), cm:Number(cm.value), position:selected('position'), level:selected('level'), release:selected('release'), blade:selected('blade'), hand:selected('hand'), feel:selected('feel'), budget:Number(selected('budget')) };
 }
 function calculateFit(p) {
   let rawFlex = p.lb * (p.age < 13 ? .48 : .5);
@@ -136,8 +136,6 @@ function calculateFit(p) {
   if (p.experience < 2) rawFlex -= 3;
   if (p.feel === 'easy') rawFlex -= 4;
   if (p.feel === 'stiff') rawFlex += 4;
-  if (p.shot === 'snap') rawFlex -= 2;
-  if (p.shot === 'slap' || p.shot === 'onetimer') rawFlex += 2;
   rawFlex = Math.max(10, Math.min(95, rawFlex));
   const availableFlexes = [10,20,30,35,40,50,55,60,65,70,75,77,80,85,87,95,100];
   const flex = nearest(rawFlex, availableFlexes);
@@ -146,10 +144,9 @@ function calculateFit(p) {
   let stickClass = flex <= 30 ? 'Youth' : flex <= 50 ? 'Junior' : flex <= 65 ? 'Intermediate' : 'Senior';
   let lengthIn = p.cm / 2.54 - 9;
   if (p.position === 'defense') lengthIn += .75;
-  if (p.shot === 'snap') lengthIn -= .5;
   lengthIn = Math.max(30, Math.min(66, Math.round(lengthIn * 2) / 2));
-  const kick = p.shot === 'snap' ? 'Low' : p.shot === 'slap' || p.shot === 'onetimer' ? 'Mid' : 'Hybrid';
-  const curve = p.shot === 'slap' ? 'P88 / P40' : p.shot === 'snap' ? 'P28' : 'P29 / P92';
+  const kick = {quick:'Low',load:'Mid',blend:'Hybrid'}[p.release] || 'Compare';
+  const curve = {allround:'P29 / P92',toe:'P28',mid:'P88'}[p.blade] || 'Compare blade shapes';
   return { flex, flexRange:`${softer} to ${flex === softer ? firmer : flex}`, stickClass, lengthIn, lengthCm:Math.round(lengthIn*2.54), kick, curve };
 }
 
@@ -164,23 +161,19 @@ function rankProducts(profile, fit) {
     const productTier = Math.max(...product.tiers.map(t => tierScore[t]));
     let score = 100;
     score -= Math.min(28, Math.abs(productTier-desiredTier)*10);
-    score -= product.kick === fit.kick ? 0 : (fit.kick === 'Hybrid' ? 4 : 13);
+    score -= fit.kick === 'Compare' || product.kick === fit.kick ? 0 : (fit.kick === 'Hybrid' ? 4 : 13);
     score -= flexGap * 2.5;
-    if (profile.position === 'defense' && product.kick === 'Mid') score += 4;
-    if (profile.position === 'forward' && product.kick === 'Low') score += 3;
-    if (product.name.includes('Jetspeed')) score += fit.kick === 'Hybrid' ? 8 : 1;
-    if (product.name.includes('Ribcor') && fit.kick === 'Low') score += 5;
-    if ((product.name.includes('Tacks') || product.name.includes('Supreme')) && fit.kick === 'Mid') score += 5;
     return {...product, price, score:Math.round(score), productTier, hasFlex, optionFlex};
   }).filter(p => Number.isFinite(p.price) && (profile.budget === 999 || p.price <= profile.budget)).sort((a,b) => b.score-a.score).slice(0,15)
     .map((product,index) => ({...product, matchRank:index+1, matchRating:Math.max(4.1, round(5-index*.06,1))}));
 }
 
 function reasonFor(product, profile, fit) {
-  const shotText = fit.kick === 'Low' ? 'quick release and easy loading' : fit.kick === 'Mid' ? 'power shots and strong loading' : 'a versatile mix of release and power';
+  const response = {Low:'bending nearer the blade to help release the puck quickly',Mid:'bending nearer the middle of the long shaft you hold',Hybrid:'a mix of shaft bending and release characteristics'}[product.kick];
   const budgetText = profile.budget === 999 ? 'matches your unrestricted price selection' : 'fits your selected budget';
   const flexText = product.hasFlex ? '' : ` Closest listed flex is ${product.optionFlex}.`;
-  return `${product.kick}-kick profile suits ${shotText}; ${budgetText}.${flexText}`;
+  const preference = fit.kick === 'Compare' ? 'You chose Not sure. Ask a store fitter to help you compare how this stick feels.' : product.kick === fit.kick ? 'Matches the shooting feel you selected.' : 'A different shooting feel to compare in store.';
+  return `${product.kick} kick offers ${response}; ${budgetText}. ${preference}${flexText}`;
 }
 function badgeFor(product, index, profile) {
   if (product === state.results[0]) return '<span class="badge best">Best match</span>';
@@ -204,7 +197,7 @@ function renderProducts(sort='match') {
         <div class="badges">${badgeFor(p,index,profile)}<span class="badge">${p.brand}</span></div>
         <h4>${p.name} ${fit.stickClass}</h4>
         <p>${reasonFor(p,profile,fit)}</p>
-        <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Curve <b>${fit.curve.split(' / ')[0]}</b></span><span>HockeyFit rating <b>${p.matchRating.toFixed(1)} / 5</b></span></div>
+        <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span><span>Blade options <b>Check exact model</b></span><span>HockeyFit rating <b>${p.matchRating.toFixed(1)} / 5</b></span></div>
       </div>
       <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${p.url}" target="_blank" rel="noopener">Check availability ↗</a></div>
     </article>`).join('') || '<p>No sticks in our current catalog meet this budget for the recommended size. Try a higher budget or check local sale prices.</p>';
@@ -219,8 +212,7 @@ function buildResults() {
   const fit = calculateFit(p);
   state.profile = p; state.fit = fit; state.results = rankProducts(p,fit); state.visibleCount = 5; state.sort = 'match';
   const position = p.position === 'defense' ? 'defense' : 'forward';
-  const shotNames = {wrist:'balanced shot',snap:'quick release',slap:'power shot',onetimer:'one timer'};
-  $('#resultTitle').textContent = `${p.level[0].toUpperCase()+p.level.slice(1)} ${position} · ${shotNames[p.shot]} setup`;
+  $('#resultTitle').textContent = `${p.level[0].toUpperCase()+p.level.slice(1)} ${position} · ${fit.kick === 'Compare' ? 'compare release feels' : fit.kick.toLowerCase() + ' kick preference'}`;
   $('#resultSummary').textContent = p.feel === 'easy' ? 'A softer setup designed to help generate release with less force.' : p.feel === 'stiff' ? 'A firmer setup for a player who deliberately wants more resistance.' : 'A balanced setup that is easy to load without giving up stability.';
   $('#resultFlex').textContent = fit.flex;
   $('#flexRange').textContent = `Comparison range ${fit.flexRange}`;
@@ -229,7 +221,7 @@ function buildResults() {
   $('#resultClass').textContent = fit.stickClass;
   $('#classDetail').textContent = `Confirm ${fit.flex} flex stock length`;
   $('#resultKick').textContent = fit.kick;
-  $('#curveDetail').textContent = `${fit.curve} starting point`;
+  $('#curveDetail').textContent = `${fit.curve} · try before choosing`;
   $('#heroFlex').textContent = fit.flex;
   $('#heroLength').innerHTML = `${fit.lengthIn}<span>″</span>`;
   const cutWarning = fit.lengthIn < (fit.stickClass === 'Junior' ? 54 : fit.stickClass === 'Intermediate' ? 57 : fit.stickClass === 'Senior' ? 60 : 48);

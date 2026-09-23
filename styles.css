@@ -53,3 +53,5 @@
 .coming-page-icon{color:#152b3a}
 .coming-page-icon svg{width:96px;height:96px}
 @media(max-width:520px){.equipment-row,.equipment-coming{grid-template-columns:64px minmax(0,1fr) 22px;gap:12px}.equipment-coming{grid-template-columns:64px minmax(0,1fr)}.equipment-icon{width:64px;height:76px}.equipment-icon svg{width:64px;height:64px}.equipment-coming>svg{width:58px;height:58px}}
+/* Independent release and blade preferences */
+#releasePreference,#bladePreference{display:block;width:100%;min-width:0;max-width:100%;min-height:48px;padding:12px 8px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font-size:16px}
