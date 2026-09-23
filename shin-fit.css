@@ -1,4 +1,20 @@
-.shin-fit{padding:24px 0 40px;max-width:760px;margin:auto}
+.shin-fit{padding:24px 0 40px;max-width:1060px;margin:auto}
+.sg-step-content:has(.sg-results){padding:0}
+.sg-results .result-hero h2{font:800 28px/1 var(--display);margin:0 0 7px;text-transform:uppercase}
+.sg-results .result-hero p{font-size:13px;margin:0;color:#aec2cf}
+.sg-results .result-hero .section-kicker,.sg-results .rank-head .section-kicker{color:#08bbae;font-size:10px;margin:0 0 7px}
+.sg-results .fit-metrics strong{margin:7px 0 4px;color:var(--ink);font:800 30px/1.1 var(--display)}
+.sg-results .fit-metrics p{font-size:9px;margin:0;color:#718390}
+.sg-results .rank-head h3{font:800 28px/1 var(--display);margin:0 0 7px;text-transform:uppercase}
+.sg-results .stick-main>p{font-size:9px;color:#677c8a;margin:6px 0}
+.sg-results .stick-main{min-width:0}
+.sg-results .stick-main h4{overflow-wrap:anywhere}
+.sg-results .stick-buy a{color:#087d75}
+.sg-results .source-box p{font-size:10px;color:#627685}
+.sg-more{margin:16px 34px}
+.sg-empty{font-size:13px!important}
+.sg-step-content:has(.sg-results)>.sg-error:empty{display:none}
+@media(max-width:760px){.sg-results .rank-head h3{font-size:23px}.sg-more{margin:16px 19px}.sg-results .fit-metrics strong{font-size:26px}}
 .sg-shell{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden}
 .sg-steps{grid-template-columns:repeat(5,minmax(0,1fr))}
 .sg-step-content{padding:24px 34px 0}

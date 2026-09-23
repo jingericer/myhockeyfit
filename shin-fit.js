@@ -112,19 +112,17 @@
     const sizes=sizesFor(Number(data.cm));
     let products=shortlist(window.shinCatalog||[],sizes,Number(data.budget));
     if(data.sort==='name')products.sort((a,b)=>a.name.localeCompare(b.name));
-    const tongue={outside:'Tongue outside: check that the tongue overlaps comfortably without pushing the pad up.',tucked:'Tongue tucked: check that the pad does not press into the boot when you bend.',unsure:'Try both tongue positions with a store fitter before deciding.'}[data.tongue];
-    return '<h2 tabindex="-1">Your starting fit</h2><div class="sg-size">'+(sizes.length?sizes.map(s=>s+'″').join(' or '):'Store fitting needed')+'</div>'+
-      '<p>'+ (sizes.length?'Bauer chart starting size, based on your measurement. Try on before buying.':'Your measurement is outside the supported chart range. Remeasure or ask a store fitter. We will not guess a size.')+'</p>'+
-      '<p><b>Shin measurement:</b> '+Number(data.cm).toFixed(1)+' cm / '+(Number(data.cm)/2.54).toFixed(2)+' in<br><b>Budget:</b> CAD $'+Number(data.budget)+' before tax and shipping.</p>'+
-      '<p class="sg-notice">'+tongue+' Do not buy extra length just for growth.</p>'+
-      '<p>'+(data.level==='rep'?'For competitive play, ask the fitter about calf coverage and impact protection as well as mobility. A low price alone does not confirm suitable protection.':'Choose a comfortable, secure fit first. The most expensive model is not automatically the best fit.')+'</p>'+
-      '<h3>Options to try</h3><p>Bauer Canada models in your starting size and within your budget. Check the fit of each model in store.</p>'+
-      '<label class="sg-field">Sort<select id="sg-sort"><option value="price" '+(data.sort==='price'?'selected':'')+'>Price: low to high</option><option value="name" '+(data.sort==='name'?'selected':'')+'>Model name</option></select></label>'+
-      '<div>'+products.slice(0,data.count).map(p=>'<article class="sg-product"><h3>'+p.name+'</h3><p>'+p.variants.map(v=>v.size+'″: CAD $'+v.price.toFixed(2)).join(' · ')+'</p><a href="'+p.url+'" target="_blank" rel="noopener">Check model and availability ↗</a></article>').join('')+'</div>'+
-      (!products.length?'<p>No verified options meet this size and budget. Change your budget or ask about local sales. We have not added oversized or over budget alternatives.</p>':'')+
-      (products.length>data.count?'<button type="button" class="sg-action" data-action="more">Show '+Math.min(5,products.length-data.count)+' more</button>':'')+
-      '<p>'+products.length+' matching models. Price and stock snapshot: September 21, 2026. Verify the exact size and current price at the retailer.</p>'+
-      '<details><summary>How this result works</summary><p><a href="'+source+'" target="_blank" rel="noopener">Bauer official size and measurement guide</a>. We match the published metric measurement intervals, not a direct conversion of leg length to the product size. At an interval boundary we show both sizes. No automatic size change is made for tongue position.</p><p><a href="https://ca.bauer.com/collections/hockey-shin-pads" target="_blank" rel="noopener">Bauer Canada product catalog</a>. CCM sizing is not inferred from the Bauer chart.</p></details>';
+    const tongue={outside:'Tongue outside: check the overlap stays comfortable.',tucked:'Tongue tucked: bend your knees and check for pressure at the boot.',unsure:'Try both tongue positions with a fitter.'}[data.tongue];
+    const setup={outside:'Outside',tucked:'Tucked in',unsure:'Compare'}[data.tongue];
+    return '<div class="sg-results"><div class="result-hero"><div><p class="section-kicker">YOUR SHIN GUARD FIT</p><h2 tabindex="-1">Your starting fit</h2><p>Start with this size. Confirm in store.</p></div><button type="button" class="edit-button" data-action="edit">Edit answers</button></div>'+
+      '<div class="fit-metrics"><article><small>STARTING SIZE</small><strong class="sg-size">'+(sizes.length?sizes.map(s=>s+'″').join(' / '):'Check fit')+'</strong><p>Bauer size chart</p></article><article><small>SHIN LENGTH</small><strong>'+Number(data.cm).toFixed(1)+'<span> cm</span></strong><p>'+(Number(data.cm)/2.54).toFixed(2)+' inches measured</p></article><article><small>SKATE TONGUE</small><strong>'+setup+'</strong><p>Check with your skates on</p></article><article><small>BUDGET · CAD</small><strong>$'+Number(data.budget)+'</strong><p>Before tax and shipping</p></article></div>'+
+      '<div class="fit-note"><b>Fit check:</b> '+(sizes.length?tongue+' Do not size up just for growth.':'Outside the supported chart. Remeasure or ask a fitter.')+'</div>'+
+      '<div class="rank-head"><div><p class="section-kicker">OPTIONS IN YOUR SIZE</p><h3>Your shin guards</h3></div><label class="sort-select">Sort<select id="sg-sort"><option value="price" '+(data.sort==='price'?'selected':'')+'>Price: low to high</option><option value="name" '+(data.sort==='name'?'selected':'')+'>Model name</option></select></label></div>'+
+      '<div class="stick-results">'+products.slice(0,data.count).map((p,index)=>'<article class="stick-card"><div class="stick-rank" aria-label="Option '+(index+1)+'">#'+(index+1)+'</div><div class="stick-main"><div class="badges"><span class="badge">Bauer</span><span class="badge">Size match</span></div><h4>'+p.name.replace(/^BAUER /,'')+'</h4><p>Try with your own skates. Check knee position and coverage.</p><div class="spec-row"><span>Size <b>'+p.variants.map(v=>v.size+'″').join(' / ')+'</b></span><span>Budget <b>Within $'+Number(data.budget)+'</b></span></div>'+(new Set(p.variants.map(v=>v.price)).size>1?'<p>'+p.variants.map(v=>v.size+'″: $'+v.price.toFixed(2)).join(' · ')+'</p>':'')+'</div><div class="stick-buy"><small>'+(new Set(p.variants.map(v=>v.price)).size>1?'FROM CAD':'REFERENCE CAD')+'</small><strong>$'+p.price.toFixed(2)+'</strong><a href="'+p.url+'" target="_blank" rel="noopener">View this model ↗</a></div></article>').join('')+
+      (!products.length?'<p class="sg-empty">No models match this size and budget. Edit your answers or check local sales.</p>':'')+'</div>'+
+      (products.length>data.count?'<div class="sg-more"><button type="button" class="show-more-button" data-action="more">Show '+Math.min(5,products.length-data.count)+' more <span>↓</span></button></div>':'')+
+      '<div class="price-note">'+products.length+' models · Bauer Canada · Prices checked Sep 21, 2026</div>'+
+      '<div class="source-box"><details><summary>How this result works</summary><p><a href="'+source+'" target="_blank" rel="noopener">Bauer measurement and size guide ↗</a>. Measurement ranges determine your starting size. At a boundary, try both sizes. Tongue position does not change the size automatically.</p><p>Numbers show list order, not ratings. Products match size and budget; protection needs an in store check'+(data.level==='rep'?', especially for competitive play':'')+'. Confirm current prices and stock.</p></details></div></div>';
   }
   function checkPage() {
     const questions=[
@@ -172,6 +170,7 @@
     if(button.dataset.openCamera){openCamera(button.dataset.openCamera);return;}
     if(button.dataset.delete){const key=button.dataset.delete;if(photos[key])URL.revokeObjectURL(photos[key]);delete photos[key];render(false);return;}
     const action=button.dataset.action;
+    if(action==='edit'){page=0;render();root.scrollIntoView({behavior:'smooth',block:'start'});return;}
     if(action==='home'){clearPhotos();showEquipmentHome();return;}
     if(action==='more'){data.count+=5;render(false);return;}
     if(action==='back'){if(page===4)clearPhotos();page=Math.max(0,page-1);render();return;}
