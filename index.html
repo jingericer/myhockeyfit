@@ -196,21 +196,26 @@
               <label class="choice line"><input type="radio" name="level" value="elite"><span><i>04</i><b>Elite</b><small>AAA, academy, junior+</small></span></label>
             </div>
           </div>
-          <div class="field-block">
-            <label class="field-label" for="releasePreference">How would you like the stick to feel when you shoot?</label>
-            <p class="shooting-side-help" id="releaseHelp">The long part you hold is the shaft. It bends as you push into a shot, then springs back. The place it is designed to bend most is called the kick point.</p>
-            <select id="releasePreference" name="release" aria-describedby="releaseHelp releaseBeginner"><option value="unsure">Not sure / buying my first stick</option><option value="quick">I prefer a short, quick shooting motion</option><option value="load">I like feeling the stick bend through the middle as I push into a shot</option><option value="blend">I want to try a mix of those feels</option></select>
-            <p class="shooting-side-help"><b>Low kick:</b> bends nearer the blade, for a quick release of the puck. <b>Mid kick:</b> bends nearer the middle of the shaft. <b>Hybrid:</b> combines aspects of both designs. None is required for a particular shot or position.</p>
-            <p class="shooting-side-help" id="releaseBeginner"><b>First stick?</b> Choose “Not sure.” We will show options to compare instead of guessing which feel you like. Ask a store fitter to help you try them.</p>
-          </div>
-          <div class="field-block">
-            <label class="field-label" for="bladePreference">Which blade shape would you like to try?</label>
-            <p class="shooting-side-help" id="bladeHelp">The blade is the bottom part that touches the puck. Its curved shape affects how the puck sits on it and leaves it. The far end of the blade is called the toe.</p>
-            <select id="bladePreference" name="blade" aria-describedby="bladeHelp bladeBeginner"><option value="unsure">Not sure / buying my first stick</option><option value="allround">An option for passing, handling and shooting</option><option value="toe">More curve near the tip of the blade</option><option value="mid">A curve through the middle of the blade</option></select>
-            <p class="shooting-side-help"><b>P29 / P92:</b> options to compare for a mix of passing, moving the puck with your stick and shooting. <b>P28:</b> worth trying if you like pulling the puck with the tip of the blade before shooting. <b>P88:</b> another middle curve to compare for how the puck feels on the blade. These names identify shapes, not skill levels. All can be used for different shots.</p>
-            <p class="shooting-side-help" id="bladeBeginner"><b>First stick?</b> You do not need to know a curve number. Choose “Not sure” and compare blades in store. If you already like your current blade, bring that stick along.</p>
-            <p class="shooting-side-help">Choose the shaft feel and blade shape separately. A quick release does not mean you need P28. Shapes can differ between brands, and not every stick comes with every blade. <a href="https://www.bauer.com/blogs/learn/the-ultimate-hockey-stick-buying-guide" target="_blank" rel="noopener">Bauer guide</a> · <a href="https://ca.ccmhockey.com/en/Sticks-2" target="_blank" rel="noopener">CCM guide</a></p>
-          </div>
+          <fieldset class="field-block" style="border:0;padding:0;min-width:0">
+            <legend class="field-label">Choose your shooting feel</legend>
+            <p class="shooting-side-help">Choose a feel, or select Not sure.</p>
+            <div class="option-grid two-wide">
+              <label class="choice line"><input type="radio" name="release" value="unsure" checked><span><i>01</i><b>Not sure</b><small>First stick? Start here</small></span></label>
+              <label class="choice line"><input type="radio" name="release" value="quick"><span><i>02</i><b>Short, quick motion</b><small>Compare low kick</small></span></label>
+              <label class="choice line"><input type="radio" name="release" value="load"><span><i>03</i><b>Feel the middle bend</b><small>Compare mid kick</small></span></label>
+              <label class="choice line"><input type="radio" name="release" value="blend"><span><i>04</i><b>A mix of both</b><small>Compare hybrid kick</small></span></label>
+            </div>
+          </fieldset>
+          <fieldset class="field-block" style="border:0;padding:0;min-width:0">
+            <legend class="field-label">Which blade shape would you try?</legend>
+            <p class="shooting-side-help">The blade is the bottom part that touches the puck.</p>
+            <div class="option-grid two-wide">
+              <label class="choice line"><input type="radio" name="blade" value="unsure" checked><span><i>01</i><b>Not sure</b><small>First stick? Start here</small></span></label>
+              <label class="choice line"><input type="radio" name="blade" value="allround"><span><i>02</i><b>Pass, handle and shoot</b><small>Compare P29 / P92</small></span></label>
+              <label class="choice line"><input type="radio" name="blade" value="toe"><span><i>03</i><b>More curve at the tip</b><small>Compare P28</small></span></label>
+              <label class="choice line"><input type="radio" name="blade" value="mid"><span><i>04</i><b>Curve in the middle</b><small>Compare P88</small></span></label>
+            </div>
+          </fieldset>
           <div class="field-block">
             <span class="field-label">Shooting side</span>
             <div class="segmented">
