@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker.mjs';
 const env = {OPENAI_API_KEY:'test-only',PHOTO_LIMITER:{limit:async()=>({success:true})},ASSETS:{fetch:async()=>new Response('asset')}};
+const checks = ['player','skates','framing','posture','stick_vertical','toe_contact','landmarks'].map(id=>({id,status:id==='toe_contact'?'unclear':'pass',evidence:id==='toe_contact'?'Blade tip is hidden.':'Visible.',fix:id==='toe_contact'?'Show the blade tip touching the floor.':''}));
 const photo = {consent:true,image:'data:image/jpeg;base64,/9j/'+ 'A'.repeat(100)};
 const request = (body=photo,headers={}) => new Request('https://myhockeyfit.com/api/photo-fit',{method:'POST',headers:{Origin:'https://myhockeyfit.com','Content-Type':'application/json',...headers},body:JSON.stringify(body)});
 test('configuration and static routing',async()=>{
@@ -25,9 +26,14 @@ test('structured assessment, no response storage, no raw upstream errors',async(
   globalThis.fetch=async(url,options)=>{
    assert.equal(url,'https://api.openai.com/v1/responses');
    const body=JSON.parse(options.body);assert.equal(body.store,false);assert.equal(body.model,'gpt-4.1-mini');assert.equal(body.input[0].content[1].image_url,photo.image);
-   return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'retake',reason:'Stick is hidden.',next_step:'Show the full stick.'})}]}]});
+   return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'retake',reason:'Stick is hidden.',next_step:'Show the full stick.',checks})}]}]});
   };
-  const result=await worker.fetch(request(),env);assert.equal(result.headers.get('Cache-Control'),'no-store');const assessment=await result.json();assert.equal(assessment.status,'retake');assert.equal(assessment.reason,'This photo could not be assessed reliably.');
+  const result=await worker.fetch(request(),env);assert.equal(result.headers.get('Cache-Control'),'no-store');const assessment=await result.json();assert.equal(assessment.status,'retake');assert.deepEqual(assessment.checks,checks);assert.equal(assessment.checks[5].status,'unclear');
+  globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'starting_range',reason:'Length looks right.',next_step:'Try it.',checks})}]}]});
+  assert.equal((await (await worker.fetch(request(),env)).json()).status,'retake');
+  const passed=checks.map(c=>({...c,status:'pass',fix:''}));
+  globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'starting_range',reason:'Length looks right.',next_step:'Try it.',checks:passed})}]}]});
+  assert.equal((await (await worker.fetch(request(),env)).json()).status,'starting_range');
   globalThis.fetch=async()=>new Response('sensitive upstream debug',{status:401});
   const error=await worker.fetch(request(),env);assert.equal(error.status,502);assert(!(await error.text()).includes('sensitive'));
   globalThis.fetch=async()=>Response.json({status:'completed',output:[]});assert.equal((await worker.fetch(request(),env)).status,502);

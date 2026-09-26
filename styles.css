@@ -83,3 +83,5 @@
 
 /* The page heading receives focus for screen reader navigation, not interaction. */
 #standalonePhotoTitle:focus{outline:none}
+
+.photo-check-issues{padding-left:20px;margin:14px 0}.photo-check-issues li{margin:12px 0}.photo-check-issues b,.photo-check-issues span{display:block}.photo-check-issues span{margin-top:3px;font-size:13px}.photo-retry-button{background:#082035;color:#fff;border:0;border-radius:8px;padding:12px 18px;font-weight:700}

@@ -417,6 +417,19 @@ $('#sendAIPhoto').addEventListener('click', async () => {
     for (const [tag,text] of [['span','AI length check · Beta'],['h4',titles[data.status]],['p',looksRight ? 'The top of your stick is between your chin and nose with skates on.' : data.reason],['p',looksRight ? '' : data.next_step],['p',looksRight ? 'This checks length only. Try the stick to confirm it feels comfortable.' : 'A photo estimate only. Confirm flex, blade lie and comfort in person before cutting or buying.']].filter(([,text])=>text)) {
       const node = document.createElement(tag); node.textContent = text; result.append(node);
     }
+    if (data.status === 'retake' && Array.isArray(data.checks)) {
+      const labels = {player:'Player',skates:'Ice skates',framing:'Full photo',posture:'Standing straight',stick_vertical:'Upright stick',toe_contact:'Blade toe on floor',landmarks:'Face and stick top'};
+      const list = document.createElement('ul'); list.className = 'photo-check-issues';
+      for (const check of data.checks.filter(c=>c.status !== 'pass' && labels[c.id])) {
+        const item = document.createElement('li');
+        const title = document.createElement('b'); title.textContent = labels[check.id] + ': ' + (check.status === 'fail' ? 'Needs adjustment' : 'Cannot see clearly');
+        item.append(title);
+        for (const text of [check.evidence,check.fix]) { if (typeof text === 'string' && text) { const line = document.createElement('span'); line.textContent = text; item.append(line); } }
+        list.append(item);
+      }
+      result.append(list);
+      const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'photo-retry-button'; retry.textContent = 'Take another photo'; retry.addEventListener('click',openFitCamera); result.append(retry);
+    }
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
   } catch (error) {
     if (!controller.signal.aborted) $('#aiFitMessage').textContent = error.message;
