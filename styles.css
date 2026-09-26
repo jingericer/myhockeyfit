@@ -90,6 +90,7 @@
 
 /* Show the complete camera frame, including edges that previously cropped the player. */
 .camera-stage video,.camera-stage canvas{object-fit:contain}
+.camera-actions{position:relative}.wide-camera-button{position:absolute;left:20px;top:50%;transform:translateY(-50%);border:1px solid rgba(255,255,255,.48);background:#102a3c;color:#fff;border-radius:99px;padding:9px 12px;font-size:11px;font-weight:800}.wide-camera-button:disabled{opacity:.6}
 .photo-wide-option{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.18);padding-top:14px}
 .photo-wide-option label{display:block;cursor:pointer;font-size:12px;color:#fff}
 .photo-wide-option label b{color:#1ee6d1}

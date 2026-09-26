@@ -346,6 +346,7 @@ window.addEventListener('resize',()=>{if(!$('#cameraModal').hidden)alignFitCamer
 function stopFitCamera() {
   if (photoFitState.stream) photoFitState.stream.getTracks().forEach(track => track.stop());
   photoFitState.stream = null; $('#fitCameraVideo').srcObject = null;
+  $('#wideCameraButton').hidden = true;
 }
 
 function setCapturedMode(captured) {
@@ -363,6 +364,22 @@ function setCapturedMode(captured) {
 }
 
 let cameraRequest = 0;
+let wideCameraId = '';
+const rearCameraConstraints = {facingMode:{ideal:'environment'},width:{ideal:1440},height:{ideal:1080},aspectRatio:{ideal:4/3}};
+async function findWideCamera() {
+  if (!navigator.mediaDevices?.enumerateDevices) return '';
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cameras = devices.filter(device => device.kind === 'videoinput');
+  const wide = cameras.find(device => /(?:ultra[\s-]?wide|0[.,]5\s?x)/i.test(device.label) && !/front|selfie/i.test(device.label));
+  return wide?.deviceId || '';
+}
+async function showCameraStream(stream, request) {
+  if (request !== cameraRequest) {stream.getTracks().forEach(track => track.stop()); return false;}
+  photoFitState.stream = stream;
+  const video = $('#fitCameraVideo'); video.srcObject = stream; await video.play();
+  if (request !== cameraRequest) {stream.getTracks().forEach(track => track.stop()); return false;}
+  alignFitCameraGuide(); return true;
+}
 async function openFitCamera() {
   refreshAIStatus();
   stopFitCamera();
@@ -371,10 +388,12 @@ async function openFitCamera() {
   result.hidden = true; modal.hidden = false; document.body.classList.add('camera-open'); setCapturedMode(false);
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
-    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1440},height:{ideal:1080},aspectRatio:{ideal:4/3}}});
-    if (request !== cameraRequest) { stream.getTracks().forEach(track => track.stop()); return; }
-    photoFitState.stream = stream;
-    const video = $('#fitCameraVideo'); video.srcObject = photoFitState.stream; await video.play(); alignFitCameraGuide();
+    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:rearCameraConstraints});
+    if (!await showCameraStream(stream,request)) return;
+    try {
+      wideCameraId = await findWideCamera();
+      if (request === cameraRequest && wideCameraId && wideCameraId !== stream.getVideoTracks()[0]?.getSettings?.().deviceId) $('#wideCameraButton').hidden = false;
+    } catch { wideCameraId = ''; }
   } catch (error) {
     if (request !== cameraRequest) return;
     stopFitCamera(); modal.hidden = true; document.body.classList.remove('camera-open');
@@ -382,6 +401,23 @@ async function openFitCamera() {
     result.innerHTML = '<span class="photo-verdict">Camera unavailable</span><h4>Allow camera access</h4><p>Photo Fit needs camera permission and an HTTPS connection. On iPhone, open Safari Settings for this site and allow Camera, then try again.</p>';
   }
 }
+$('#wideCameraButton').addEventListener('click',async () => {
+  if (!wideCameraId || !photoFitState.stream) return;
+  const request = ++cameraRequest, button = $('#wideCameraButton');
+  button.disabled = true;
+  stopFitCamera();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{deviceId:{exact:wideCameraId},width:{ideal:1440},height:{ideal:1080}}});
+    if (await showCameraStream(stream,request)) $('#cameraInstruction').textContent = 'Wide camera. Keep skates and blade toe in view.';
+  } catch {
+    if (request !== cameraRequest) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:rearCameraConstraints});
+      await showCameraStream(stream,request);
+    } catch {closeFitCamera();}
+    const result=$('#photoFitResult'); result.hidden=false;result.className='photo-fit-result warning';result.textContent='Wide camera is unavailable here. Use your phone Camera app at 0.5× and choose the photo.';
+  } finally {button.disabled=false;}
+});
 
 function closeFitCamera() { cameraRequest++; stopFitCamera(); $('#cameraModal').hidden = true; document.body.classList.remove('camera-open'); const canvas=$('#fitCameraCanvas'); canvas.width=0; canvas.height=0; setCapturedMode(false); }
 function resetPhotoFit() { closeFitCamera(); $('#photoFitResult').hidden = true; const canvas=$('#fitCameraCanvas'); canvas.width=0; canvas.height=0; }
