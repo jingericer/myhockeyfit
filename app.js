@@ -314,6 +314,18 @@ function buildResults() {
 }
 
 const photoFitState = { stream:null, captured:false, stickTop:null, nose:null, chin:null };
+let aiPhoto = '', aiController = null;
+async function refreshAIStatus() {
+  try {
+    const response = await fetch('/api/photo-fit', {cache:'no-store'});
+    const status = await response.json();
+    $('#sendAIPhoto').disabled = status.enabled !== true;
+    $('#aiFitMessage').textContent = status.enabled ? '' : 'AI check is not configured yet. Manual check is available.';
+  } catch {
+    $('#sendAIPhoto').disabled = true;
+    $('#aiFitMessage').textContent = 'AI check is unavailable. Manual check is available.';
+  }
+}
 
 function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY) {
   if (![stickTopY,canvasHeight,noseY,chinY].every(Number.isFinite) || canvasHeight<=0 || noseY<0 || chinY<=noseY || chinY>canvasHeight || stickTopY<0 || stickTopY>canvasHeight) return {status:'unclear',title:'Check the photo markers',detail:'Mark the actual nose, chin and stick top. Retake if the face or complete stick is not visible.'};
@@ -328,6 +340,9 @@ function stopFitCamera() {
 }
 
 function setCapturedMode(captured) {
+  $('#aiPhotoPanel').hidden = !captured;
+  $('#aiPhotoConsent').checked = false;
+  if (!captured) { aiPhoto = ''; aiController?.abort(); aiController = null; }
   photoFitState.captured = captured; photoFitState.stickTop = null;
   photoFitState.nose = null; photoFitState.chin = null;
   $('#fitCameraVideo').hidden = captured; $('#fitCameraCanvas').hidden = !captured;
@@ -340,6 +355,7 @@ function setCapturedMode(captured) {
 
 let cameraRequest = 0;
 async function openFitCamera() {
+  refreshAIStatus();
   stopFitCamera();
   const request = ++cameraRequest;
   const modal = $('#cameraModal'), result = $('#photoFitResult');
@@ -374,6 +390,39 @@ $('#captureFitPhoto').addEventListener('click', () => {
   canvas.width=Math.round(sw); canvas.height=Math.round(sh);
   canvas.getContext('2d').drawImage(video,(video.videoWidth-sw)/2,(video.videoHeight-sh)/2,sw,sh,0,0,canvas.width,canvas.height);
   stopFitCamera(); setCapturedMode(true);
+  const scaled = document.createElement('canvas');
+  const ratio = Math.min(1,1600 / Math.max(canvas.width,canvas.height));
+  scaled.width = Math.round(canvas.width * ratio); scaled.height = Math.round(canvas.height * ratio);
+  scaled.getContext('2d').drawImage(canvas,0,0,scaled.width,scaled.height);
+  aiPhoto = scaled.toDataURL('image/jpeg',0.8);
+  scaled.width = 0; scaled.height = 0;
+});
+$('#sendAIPhoto').addEventListener('click', async () => {
+  if (!aiPhoto || aiController) return;
+  if (!$('#aiPhotoConsent').checked) { $('#aiFitMessage').textContent = 'Confirm photo sharing first.'; return; }
+  const controller = new AbortController(); aiController = controller;
+  const button = $('#sendAIPhoto'); button.disabled = true;
+  $('#aiFitMessage').textContent = 'Checking your photo…';
+  try {
+    const response = await fetch('/api/photo-fit', {method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({image:aiPhoto,consent:true})});
+    const data = await response.json();
+    if (controller.signal.aborted) return;
+    if (!response.ok) throw new Error(data.error || 'AI check is unavailable. Use the manual check.');
+    const titles = {short:'Stick appears short',starting_range:'Within the starting length range',long:'Stick appears long',retake:'Retake this photo'};
+    if (!titles[data.status] || typeof data.reason !== 'string' || typeof data.next_step !== 'string') throw new Error('AI returned an unclear result. Use the manual check.');
+    closeFitCamera();
+    const result = $('#photoFitResult'); result.hidden = false; result.className = 'photo-fit-result ' + (data.status === 'starting_range' ? 'good' : 'adjust');
+    result.replaceChildren();
+    for (const [tag,text] of [['span','AI length check · Beta'],['h4',titles[data.status]],['p',data.reason],['p',data.next_step],['p','A photo estimate only. Confirm flex, blade lie and comfort in person before cutting or buying.']]) {
+      const node = document.createElement(tag); node.textContent = text; result.append(node);
+    }
+    result.scrollIntoView({behavior:'smooth',block:'nearest'});
+  } catch (error) {
+    if (!controller.signal.aborted) $('#aiFitMessage').textContent = error.message;
+  } finally {
+    if (aiController === controller) aiController = null;
+    button.disabled = false;
+  }
 });
 $('#retakeFitPhoto').addEventListener('click',openFitCamera);
 $('#fitCameraCanvas').addEventListener('click', event => {

@@ -69,3 +69,11 @@
 .standalone-photo>p{color:var(--muted)}
 .standalone-photo .store-fit-card{margin:24px 0}
 @media(max-width:760px){.standalone-photo{width:calc(100% - 20px)}}
+.camera-modal:has(#aiPhotoPanel:not([hidden])){grid-template-rows:auto minmax(0,1fr) auto auto}
+.ai-photo-panel{padding:10px 18px;background:#061524;color:#fff;font-size:12px}
+.ai-photo-panel label{display:flex;align-items:flex-start;gap:8px}
+.ai-photo-panel small{display:block;font-size:10px;line-height:1.5;color:#c4d6de;margin:6px 0}
+.ai-photo-panel a{color:var(--cyan)}
+.ai-photo-panel button{background:var(--cyan);color:var(--navy);padding:10px 20px;border:0;border-radius:8px;font-weight:700}
+.ai-photo-panel button:disabled{opacity:.5}
+.ai-photo-panel p{margin:5px 0 0;font-size:11px}
