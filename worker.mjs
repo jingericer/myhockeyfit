@@ -47,7 +47,7 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (url.pathname !== '/api/photo-fit') return reply({error:'Not found'}, 404);
-    const enabled = !!env.OPENAI_API_KEY && !!env.PHOTO_LIMITER;
+    const enabled = !!env.OPENAI_API_KEY && !!env.PHOTO_LIMITER && !!env.PHOTO_HOURLY;
     if (request.method === 'GET') return reply({enabled});
     if (request.method !== 'POST') return reply({error:'Method not allowed'}, 405);
     if (request.headers.get('Origin') !== url.origin) return reply({error:'Open Photo Fit on this website.'}, 403);
@@ -56,12 +56,30 @@ export default {
     if (Number(request.headers.get('Content-Length')) > MAX_BYTES) return reply({error:'Photo is too large. Retake it.'}, 413);
     try {
       const limited = await env.PHOTO_LIMITER.limit({key: request.headers.get('CF-Connecting-IP') || 'unknown'});
-      if (!limited.success) return reply({error:'Please wait a minute before another AI check.'}, 429);
+      if (!limited.success) {
+        const response = reply({error:'Too many requests: this IP has reached 10 AI checks per minute. Please wait 60 seconds and avoid repeated submissions. Manual check is still available.'},429);
+        response.headers.set('Retry-After','60'); return response;
+      }
     } catch { return reply({error:'AI check is temporarily unavailable.'}, 503); }
     let body;
     try { body = await readLimited(request); }
     catch (e) { return reply({error:e.message === 'large' ? 'Photo is too large. Retake it.' : 'Invalid photo request.'}, e.message === 'large' ? 413 : 400); }
     if (body.consent !== true || typeof body.image !== 'string' || !/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(body.image) || body.image.length < 100) return reply({error:'Confirm photo sharing and take a new photo.'}, 400);
+    // Reserve an hourly slot before any paid upstream call. Fail closed on errors.
+    try {
+      const ip = request.headers.get('CF-Connecting-IP');
+      if (!ip) throw new Error('missing client address');
+      const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ip));
+      const key = Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+      const gate = await env.PHOTO_HOURLY.get(env.PHOTO_HOURLY.idFromName(key)).fetch('https://limiter/check',{method:'POST'});
+      if (!gate.ok) throw new Error('limiter unavailable');
+      const limit = await gate.json();
+      if (limit.allowed === false && Number.isFinite(limit.retryAfter)) {
+        const response = reply({error:`Hourly limit reached: 50 AI checks per IP. Try again in ${Math.ceil(limit.retryAfter / 60)} minutes. Please avoid repeated submissions. Manual check is still available.`},429);
+        response.headers.set('Retry-After',String(limit.retryAfter)); return response;
+      }
+      if (limit.allowed !== true) throw new Error('invalid limiter response');
+    } catch { return reply({error:'AI check is temporarily unavailable. Use the manual check.'},503); }
     try {
       const response = await fetch('https://api.openai.com/v1/responses', {
         method:'POST', signal:AbortSignal.timeout(30000),
@@ -82,3 +100,27 @@ export default {
     } catch { return reply({error:'AI could not complete this check. Try again or use the manual check.'}, 502); }
   }
 };
+
+// One globally consistent object per hashed IP, with a rolling 60 minute window.
+export class PhotoHourlyLimiter {
+  constructor(state) { this.state = state; }
+  async fetch(request) {
+    if (request.method !== 'POST') return new Response('Method not allowed',{status:405});
+    return this.state.blockConcurrencyWhile(async()=>{
+      const now = Date.now();
+      const times = (await this.state.storage.get('times') || []).filter(t=>t > now - 3600000);
+      if (times.length >= 50) return Response.json({allowed:false,retryAfter:Math.max(1,Math.ceil((times[0]+3600000-now)/1000))});
+      times.push(now);
+      await this.state.storage.put('times',times);
+      await this.state.storage.setAlarm(now+3600000);
+      return Response.json({allowed:true});
+    });
+  }
+  async alarm() {
+    await this.state.blockConcurrencyWhile(async()=>{
+      const times = (await this.state.storage.get('times') || []).filter(t=>t > Date.now()-3600000);
+      if (times.length) await this.state.storage.setAlarm(times[times.length-1]+3600000);
+      else await this.state.storage.deleteAll();
+    });
+  }
+}
