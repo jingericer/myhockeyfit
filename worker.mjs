@@ -63,6 +63,8 @@ export default {
       const text = data.output?.flatMap(x=>x.content || []).filter(x=>x.type === 'output_text').map(x=>x.text).join('');
       const result = JSON.parse(text);
       if (!statuses.includes(result.status) || typeof result.reason !== 'string' || typeof result.next_step !== 'string' || result.reason.length > 600 || result.next_step.length > 500) throw new Error('invalid');
+      // Do not repeat speculative visual explanations when the model cannot assess a photo.
+      if (result.status === 'retake') return reply({status:'retake',reason:'This photo could not be assessed reliably.',next_step:'Retake with skates on, standing upright, the full body and vertical stick visible.'});
       return reply({status:result.status,reason:result.reason,next_step:result.next_step});
     } catch { return reply({error:'AI could not complete this check. Try again or use the manual check.'}, 502); }
   }

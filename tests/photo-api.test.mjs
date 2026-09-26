@@ -27,7 +27,7 @@ test('structured assessment, no response storage, no raw upstream errors',async(
    const body=JSON.parse(options.body);assert.equal(body.store,false);assert.equal(body.model,'gpt-4.1-mini');assert.equal(body.input[0].content[1].image_url,photo.image);
    return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'retake',reason:'Stick is hidden.',next_step:'Show the full stick.'})}]}]});
   };
-  const result=await worker.fetch(request(),env);assert.equal(result.headers.get('Cache-Control'),'no-store');assert.equal((await result.json()).status,'retake');
+  const result=await worker.fetch(request(),env);assert.equal(result.headers.get('Cache-Control'),'no-store');const assessment=await result.json();assert.equal(assessment.status,'retake');assert.equal(assessment.reason,'This photo could not be assessed reliably.');
   globalThis.fetch=async()=>new Response('sensitive upstream debug',{status:401});
   const error=await worker.fetch(request(),env);assert.equal(error.status,502);assert(!(await error.text()).includes('sensitive'));
   globalThis.fetch=async()=>Response.json({status:'completed',output:[]});assert.equal((await worker.fetch(request(),env)).status,502);
