@@ -80,3 +80,6 @@
 .photo-pose-demo{grid-column:1/-1;margin:8px 0 4px;position:relative;z-index:1;text-align:center}
 .photo-pose-demo img{display:block;width:min(100%,320px);height:auto;margin:auto;border-radius:14px}
 .photo-pose-demo figcaption{font-size:10px;color:#c4d6de;margin-top:8px}
+
+/* The page heading receives focus for screen reader navigation, not interaction. */
+#standalonePhotoTitle:focus{outline:none}
