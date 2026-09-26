@@ -30,6 +30,18 @@ const equipment = {
     ],
     result:{off:'The knee is outside the knee cup. This pad is not sitting in the right place.',slips:'The pad slides when the knee bends. Check the size and straps.',gap:'There is an exposed gap near the skate. Compare a longer pad with the usual skate tongue setup.',press:'The pad presses into the skate. Try another length or shape before buying.',problem:'The pad shifts or restricts movement. Try a different fit with skates on.',good:'Knee position, lower leg coverage and movement passed this quick check.'},
     next:'Try again with skates and the player’s usual tongue position. Check both legs; bring the gear to a store fitter if anything feels wrong.',links:[['Explore shin guards','/']]
+  },
+  skates: {
+    name:'Hockey skates',
+    questions:[
+      {title:'Have their feet grown?',hint:'Think about everyday shoes since these skates were last fitted. Shoe sizes cannot be converted directly to skate sizes.',options:[['good','No change that we know of'],['growth','Everyday shoes went up 1 or more sizes','Measure both feet again.'],['unsure','Not sure','Measure both feet again.']]},
+      {title:'What do the toes feel like?',hint:'Wear their usual skating socks. Lace both skates and stand straight, then bend the knees.',options:[['good','Toes can stay straight and feel comfortable'],['cramped','Toes are curled, pressed hard or painful'],['unsure','Hard to tell','Ask the player to compare while standing and bending.']]},
+      {title:'Does the heel stay in place?',hint:'With the skates laced normally, bend the knees and take a few steps.',options:[['good','Heel stays comfortably in place'],['loose','Heel lifts or slides'],['unsure','Have not checked']]},
+      {title:'How do their feet feel after skating?',hint:'Ask about both feet and check for persistent red marks after taking the skates off.',options:[['good','Comfortable'],['pain','Pain, tingling, numbness or clear pressure marks'],['unsure','Have not checked']]}
+    ],
+    result:{growth:'Everyday shoes have grown while the skates have not. This is a reminder to remeasure both feet, not a reason to buy the same number of sizes larger.',cramped:'The toes are pressed or curled. These skates may have been outgrown. Have a fitter measure both feet and compare skate lengths.',loose:'The heel slides. Check the boot shape, width and lacing with a fitter rather than simply choosing a longer skate.',pain:'Pain or numbness needs a fit check. Check length, width and lacing with a fitter.',good:'The toes, heel and comfort passed this quick check.'},
+    next:'Measure both feet and compare the current skates with other sizes and shapes in store. Keep the heel secure and the toes comfortable; do not buy extra room just for growth.',
+    links:[]
   }
 };
 
@@ -51,13 +63,13 @@ function addChoice(container,value,label,hint,selected,onSelect){
 }
 function render(){
   stepNode.replaceChildren();resultNode.hidden=true;actions.hidden=false;
-  const total=gear?equipment[gear].questions.length+1:4;
+  const total=gear?equipment[gear].questions.length+1:5;
   progress.replaceChildren(...Array.from({length:total},(_,i)=>element('span',i<step?'done':i===step?'active':'')));
   backButton.hidden=step===0;
   nextButton.textContent=gear&&step===equipment[gear].questions.length?'See result →':'Continue →';
   nextButton.disabled=step===0?!gear:!answers[step-1];
   stepNode.append(element('p','gc-step-label',step===0?'CHOOSE GEAR':`STEP ${step} OF ${total-1}`));
-  const question=step===0?{title:'What would you like to check?',hint:'Use the gear your child wears now.',options:[['stick','Hockey stick','Standing length and comfort'],['gloves','Hockey gloves','Fingers, wrist and grip'],['shin','Shin guards','Knee position, coverage and movement']]}:equipment[gear].questions[step-1];
+  const question=step===0?{title:'What would you like to check?',hint:'Use the gear your child wears now.',options:[['stick','Hockey stick','Standing length and comfort'],['skates','Hockey skates','Toes, heel and signs of growth'],['gloves','Hockey gloves','Fingers, wrist and grip'],['shin','Shin guards','Knee position, coverage and movement']]}:equipment[gear].questions[step-1];
   stepNode.append(element('h2','',question.title),element('p','gc-hint',question.hint));
   const options=step===2&&gear==='stick'?question.byFootwear[answers[0]==='shoes'?'shoes':'skates']:question.options;
   const wrapper=element('div','gc-options');stepNode.append(wrapper);
@@ -73,9 +85,9 @@ function verdictFor(kind,selected){
   if(!equipment[kind]||selected.length!==equipment[kind].questions.length)return null;
   const issues=selected.filter(x=>!['good','skates','shoes'].includes(x)&&x!=='unsure'&&x!=='no-skates');
   const unclear=selected.includes('unsure')||selected.includes('no-skates')||(kind==='stick'&&selected[0]==='shoes');
-  const priority=['off','gap','small','short','slips','press','large','long','stiff','problem'];
+  const priority=['cramped','off','gap','small','short','pain','loose','slips','press','large','long','stiff','problem','growth'];
   const issue=priority.find(x=>issues.includes(x));
-  return {status:issue?['small','short','gap'].includes(issue)?'outgrown':'review':unclear?'review':'good',issue,unclear};
+  return {status:issue?['small','short','gap','cramped'].includes(issue)?'outgrown':'review':unclear?'review':'good',issue,unclear};
 }
 function showResult(){
   const item=equipment[gear],verdict=verdictFor(gear,answers);
@@ -87,6 +99,7 @@ function showResult(){
   resultNode.append(element('h2','gc-verdict '+verdict.status,labels[verdict.status]));
   const messages=[];
   if(verdict.issue)messages.push(item.result[verdict.issue]);
+  if(gear==='skates'&&answers.includes('growth')&&verdict.issue!=='growth')messages.push(item.result.growth);
   if(verdict.unclear)messages.push(gear==='stick'&&answers[0]==='shoes'?'This is a quick check in regular shoes. Check the length again on skates before deciding.':'Some checks are incomplete. Repeat them with the player and their usual gear before deciding.');
   if(!messages.length)messages.push(item.result.good);
   const list=element('ul');for(const message of messages)list.append(element('li','',message));resultNode.append(list);

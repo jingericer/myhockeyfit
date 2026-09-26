@@ -7,10 +7,11 @@ const require=createRequire(import.meta.url);
 // actual decision function without adding a browser dependency to the test suite.
 globalThis.document={getElementById(){return {replaceChildren(){},append(){},addEventListener(){},set hidden(value){},set textContent(value){}}},createElement(){return {append(){},setAttribute(){},addEventListener(){},className:'',textContent:''}}};
 const {equipment,verdictFor}=require('../gear-check.js');
-test('all three gear types have a complete good outcome',()=>{
+test('all four gear types have a complete good outcome',()=>{
   assert.equal(verdictFor('stick',['skates','good','good']).status,'good');
   assert.equal(verdictFor('gloves',['good','good','good']).status,'good');
   assert.equal(verdictFor('shin',['skates','good','good','good']).status,'good');
+  assert.equal(verdictFor('skates',['good','good','good','good']).status,'good');
 });
 test('visible coverage gap and a tight glove do not pass',()=>{
   assert.equal(verdictFor('shin',['skates','good','gap','good']).status,'outgrown');
@@ -23,4 +24,11 @@ test('no skates and incomplete checks cannot receive a good verdict',()=>{
   assert.equal(verdictFor('stick',['skates','unsure','good']).status,'review');
   assert.equal(verdictFor('shin',['skates','good']),null);
   for(const item of Object.values(equipment))assert.ok(item.questions.length>=3);
+});
+test('skate growth is a prompt to measure, while cramped toes may mean outgrown',()=>{
+  assert.equal(verdictFor('skates',['growth','good','good','good']).status,'review');
+  assert.equal(verdictFor('skates',['good','cramped','good','good']).status,'outgrown');
+  assert.equal(verdictFor('skates',['good','good','loose','good']).status,'review');
+  assert.equal(verdictFor('skates',['good','good','good','pain']).status,'review');
+  assert.equal(verdictFor('skates',['unsure','good','good','good']).status,'review');
 });
