@@ -47,6 +47,7 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (url.pathname === '/api/feedback') return handleFeedback(request,env);
+    if (url.pathname === '/api/team-apply' || url.pathname === '/api/team-applications') return handleTeam(request,env);
     if (url.pathname !== '/api/photo-fit') return reply({error:'Not found'}, 404);
     const enabled = !!env.OPENAI_API_KEY && !!env.PHOTO_LIMITER && !!env.PHOTO_HOURLY;
     if (request.method === 'GET') return reply({enabled});
@@ -129,17 +130,7 @@ export class PhotoHourlyLimiter {
 async function handleFeedback(request,env) {
   if (!env.FEEDBACK_INBOX) return reply({error:'Feedback is temporarily unavailable.'},503);
   if (request.method === 'GET') {
-    if (!env.FEEDBACK_ADMIN_TOKEN) return reply({error:'Admin access is not configured yet. Set the FEEDBACK_ADMIN_TOKEN secret in Cloudflare.'},503);
-    try {
-      if (!env.ADMIN_LIMITER) throw new Error('missing limiter');
-      const limited=await env.ADMIN_LIMITER.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'});
-      if(!limited.success){const response=reply({error:'Too many sign in attempts. Please wait 60 seconds.'},429);response.headers.set('Retry-After','60');return response;}
-    } catch {return reply({error:'Admin sign in is temporarily unavailable.'},503);}
-    const supplied=request.headers.get('Authorization')||'';
-    const encoder=new TextEncoder();
-    const [actual,expected]=await Promise.all([supplied,`Bearer ${env.FEEDBACK_ADMIN_TOKEN}`].map(value=>crypto.subtle.digest('SHA-256',encoder.encode(value))));
-    const a=new Uint8Array(actual),b=new Uint8Array(expected);let mismatch=0;for(let i=0;i<a.length;i++)mismatch|=a[i]^b[i];
-    if(mismatch) return reply({error:'Incorrect password. Please try again.'},403);
+    const denied=await verifyAdmin(request,env);if(denied)return denied;
     const inbox=env.FEEDBACK_INBOX.get(env.FEEDBACK_INBOX.idFromName('community'));
     return inbox.fetch('https://inbox/export');
   }
@@ -188,5 +179,74 @@ export class FeedbackInbox {
       if(JSON.parse(row.times).every(t=>t<=now-3600000))this.sql.exec('DELETE FROM submit_limits WHERE key = ?',row.key);
     }
     if(this.sql.exec('SELECT key FROM submit_limits LIMIT 1').toArray().length)await this.state.storage.setAlarm(now+3600000);
+  }
+}
+
+async function verifyAdmin(request,env){
+  if (!env.FEEDBACK_ADMIN_TOKEN) return reply({error:'Admin access is not configured yet. Set the FEEDBACK_ADMIN_TOKEN secret in Cloudflare.'},503);
+  try {
+    if (!env.ADMIN_LIMITER) throw new Error('missing limiter');
+    const limited=await env.ADMIN_LIMITER.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'});
+    if(!limited.success){const response=reply({error:'Too many sign in attempts. Please wait 60 seconds.'},429);response.headers.set('Retry-After','60');return response;}
+  } catch {return reply({error:'Admin sign in is temporarily unavailable.'},503);}
+  const supplied=request.headers.get('Authorization')||'';
+  const encoder=new TextEncoder();
+  const [actual,expected]=await Promise.all([supplied,`Bearer ${env.FEEDBACK_ADMIN_TOKEN}`].map(value=>crypto.subtle.digest('SHA-256',encoder.encode(value))));
+  const a=new Uint8Array(actual),b=new Uint8Array(expected);let mismatch=0;for(let i=0;i<a.length;i++)mismatch|=a[i]^b[i];
+  if(mismatch) return reply({error:'Incorrect password. Please try again.'},403);
+  return null;
+}
+async function handleTeam(request,env){
+  if(!env.TEAM_INBOX)return reply({error:'Recruitment is not available yet.'},503);
+  if(request.url.endsWith('/team-applications')){
+    if(request.method!=='GET')return reply({error:'Method not allowed'},405);
+    const denied=await verifyAdmin(request,env);if(denied)return denied;
+    return env.TEAM_INBOX.get(env.TEAM_INBOX.idFromName('applications')).fetch('https://team/export');
+  }
+  if(request.method!=='POST')return reply({error:'Method not allowed'},405);
+  if(request.headers.get('Origin')!==new URL(request.url).origin)return reply({error:'Open the team page on MyHockeyFit.'},403);
+  if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply({error:'Invalid request.'},415);
+  let body;
+  try{body=await readLimited(request,4000);}catch{return reply({error:'Invalid application.'},400);}
+  const groups=['U7','U9','U11','U12','U13','U15','U18','Adult'];
+  const roles=['test','build','share'];
+  if(!body||typeof body!=='object'||!/^[-a-f0-9]{36}$/i.test(body.id||'')||typeof body.volunteerName!=='string'||body.volunteerName.trim().length<1||body.volunteerName.length>60||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.parentEmail||'')||body.parentEmail.length>254||!groups.includes(body.ageGroup)||!Array.isArray(body.roles)||body.roles.length<1||body.roles.length>3||new Set(body.roles).size!==body.roles.length||body.roles.some(role=>!roles.includes(role))||body.parentApproval!==true||body.website)return reply({error:'Check the name, age group, role and parent email.'},400);
+  try{
+    const ip=request.headers.get('CF-Connecting-IP');if(!ip)throw Error('missing address');
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ip));
+    const key=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+    const inbox=env.TEAM_INBOX.get(env.TEAM_INBOX.idFromName('applications'));
+    return await inbox.fetch('https://team/apply',{method:'POST',body:JSON.stringify({id:body.id,name:body.volunteerName.trim(),ageGroup:body.ageGroup,roles:body.roles,parentEmail:body.parentEmail.trim().toLowerCase(),key})});
+  }catch{return reply({error:'Could not save your interest. Please try again later.'},503);}
+}
+export class TeamInbox {
+  constructor(state){
+    this.state=state;this.sql=state.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS applications (id TEXT PRIMARY KEY, created_at TEXT, name TEXT, age_group TEXT, roles TEXT, parent_email TEXT)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS team_limits (key TEXT PRIMARY KEY,times TEXT)');
+  }
+  async fetch(request){
+    if(request.method==='GET'&&new URL(request.url).pathname==='/export')return reply({applications:this.sql.exec('SELECT * FROM applications ORDER BY created_at DESC').toArray()});
+    if(request.method!=='POST')return reply({error:'Method not allowed'},405);
+    const body=await request.json();
+    return this.state.blockConcurrencyWhile(async()=>{
+      if(this.sql.exec('SELECT id FROM applications WHERE id=?',body.id).toArray().length)return reply({ok:true});
+      const now=Date.now();const record=this.sql.exec('SELECT times FROM team_limits WHERE key=?',body.key).toArray()[0];
+      const times=(record?JSON.parse(record.times):[]).filter(time=>time>now-3600000);
+      if(times.length>=3)return reply({error:'Too many applications from this connection. Please wait an hour.'},429);
+      if(this.sql.exec('SELECT COUNT(*) AS n FROM applications').toArray()[0].n>=1000)return reply({error:'Recruitment is temporarily full.'},503);
+      times.push(now);
+      this.state.storage.transactionSync(()=>{
+        this.sql.exec('INSERT INTO applications VALUES (?,?,?,?,?,?)',body.id,new Date(now).toISOString(),body.name,body.ageGroup,JSON.stringify(body.roles),body.parentEmail);
+        this.sql.exec('INSERT OR REPLACE INTO team_limits VALUES (?,?)',body.key,JSON.stringify(times));
+      });
+      await this.state.storage.setAlarm(now+3600000);
+      return reply({ok:true});
+    });
+  }
+  async alarm(){
+    const now=Date.now();
+    for(const row of this.sql.exec('SELECT key,times FROM team_limits').toArray())if(JSON.parse(row.times).every(time=>time<=now-3600000))this.sql.exec('DELETE FROM team_limits WHERE key=?',row.key);
+    if(this.sql.exec('SELECT key FROM team_limits LIMIT 1').toArray().length)await this.state.storage.setAlarm(now+3600000);
   }
 }

@@ -39,6 +39,10 @@
       {
         "name": "FEEDBACK_INBOX",
         "class_name": "FeedbackInbox"
+      },
+      {
+        "name": "TEAM_INBOX",
+        "class_name": "TeamInbox"
       }
     ]
   },
@@ -53,6 +57,12 @@
       "tag": "feedback-v1",
       "new_sqlite_classes": [
         "FeedbackInbox"
+      ]
+    },
+    {
+      "tag": "team-inbox-v1",
+      "new_sqlite_classes": [
+        "TeamInbox"
       ]
     }
   ]
