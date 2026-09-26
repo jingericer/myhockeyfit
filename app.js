@@ -313,7 +313,17 @@ function buildResults() {
   $('#sortResults').value = 'match'; renderProducts();
 }
 
-const photoFitState = { stream:null, captured:false, stickTop:null, nose:null, chin:null };
+const photoFitState = { stream:null, captured:false, stickTop:null, nose:null, chin:null, footwear:null };
+function photoLowerLabel() {return photoFitState.footwear === 'shoes' ? 'upper lip' : 'chin';}
+$$('[data-footwear]').forEach(button => button.addEventListener('click',()=>{
+  photoFitState.footwear=button.dataset.footwear;
+  $('#photoFootwearStep').hidden=true;$('#photoCameraStep').hidden=false;
+  $('#photoReadyTitle').textContent=photoFitState.footwear==='shoes'?'Regular shoes selected':'Ice skates selected';
+  $('#photoMarkerDescription').textContent=`Tap the nose, ${photoLowerLabel()} and stick top to check length.`;
+  $('#photoReadyHint').textContent='Ask someone to help. Show your full body, footwear and stick.';
+  $('#photoCameraStep').scrollIntoView({behavior:'smooth',block:'nearest'});
+}));
+$('#changePhotoFootwear').addEventListener('click',()=>{resetPhotoFit();photoFitState.footwear=null;$('#photoFootwearStep').hidden=false;$('#photoCameraStep').hidden=true;});
 let aiPhoto = '', aiController = null;
 async function refreshAIStatus() {
   try {
@@ -327,8 +337,13 @@ async function refreshAIStatus() {
   }
 }
 
-function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY) {
-  if (![stickTopY,canvasHeight,noseY,chinY].every(Number.isFinite) || canvasHeight<=0 || noseY<0 || chinY<=noseY || chinY>canvasHeight || stickTopY<0 || stickTopY>canvasHeight) return {status:'unclear',title:'Check the photo markers',detail:'Mark the actual nose, chin and stick top. Retake if the face or complete stick is not visible.'};
+function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY,footwear='skates') {
+  if (![stickTopY,canvasHeight,noseY,chinY].every(Number.isFinite) || canvasHeight<=0 || noseY<0 || chinY<=noseY || chinY>canvasHeight || stickTopY<0 || stickTopY>canvasHeight) return {status:'unclear',title:'Check the photo markers',detail:'Mark the nose, lower face point and stick top. Retake if the face or full stick is hidden.'};
+  if (footwear === 'shoes') {
+    if (stickTopY<noseY) return {status:'long',title:'The stick may be too long',detail:'In regular shoes, the stick top is above your nose. Ask a fitter to check before making changes.'};
+    if (stickTopY>chinY) return {status:'short',title:'The stick may be too short',detail:'In regular shoes, the stick top is below your upper lip. Compare a longer stick in store.'};
+    return {status:'good',title:'A good starting length',detail:'In regular shoes, the stick top appears between your upper lip and nose. Check again on skates before cutting.'};
+  }
   if (stickTopY < noseY) return {status:'long',title:'The stick may be too long',detail:'The marked stick top is above the marked nose. Confirm the length in person before cutting.'};
   if (stickTopY > chinY) return {status:'short',title:'The stick may be too short',detail:'The marked stick top is below the marked chin. Compare a longer stick in store.'};
   return {status:'good',title:'Your stick length looks right',detail:'Your marks put the stick top between your chin and nose. This assumes you have skates on and the stick is upright with its blade toe (front tip) on the floor.'};
@@ -359,7 +374,7 @@ function setCapturedMode(captured) {
   $('#fitCameraOverlay').hidden = captured; $('#stickTopHint').hidden = !captured;
   $('#captureFitPhoto').hidden = captured; $('#retakeFitPhoto').hidden = !captured; $('#finishPhotoFit').hidden = !captured;
   $('#finishPhotoFit').disabled = true;
-  $('#cameraInstruction').textContent = captured ? 'Mark the actual points on the photo' : 'Skates on. Stand straight. Hold the stick upright.';
+  $('#cameraInstruction').textContent = captured ? 'Mark the actual points on the photo' : `${photoFitState.footwear==='shoes'?'Regular shoes':'Ice skates'}. Stand straight. Hold the stick upright.`;
   $('#stickTopHint').textContent = '1 of 3: Tap the tip of the nose';
 }
 
@@ -381,11 +396,13 @@ async function showCameraStream(stream, request) {
   alignFitCameraGuide(); return true;
 }
 async function openFitCamera() {
+  if (!photoFitState.footwear) {$('#photoFootwearStep').scrollIntoView({behavior:'smooth',block:'center'});return;}
   refreshAIStatus();
   stopFitCamera();
   const request = ++cameraRequest;
   const modal = $('#cameraModal'), result = $('#photoFitResult');
   result.hidden = true; modal.hidden = false; document.body.classList.add('camera-open'); setCapturedMode(false);
+  $('#cameraInstruction').textContent=photoFitState.footwear==='shoes'?'Regular shoes. Stand straight. Keep the blade toe on the floor.':'Skates on. Stand straight. Keep the blade toe on the floor.';
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
     const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:rearCameraConstraints});
@@ -408,7 +425,7 @@ $('#wideCameraButton').addEventListener('click',async () => {
   stopFitCamera();
   try {
     const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{deviceId:{exact:wideCameraId},width:{ideal:1440},height:{ideal:1080}}});
-    if (await showCameraStream(stream,request)) $('#cameraInstruction').textContent = 'Wide camera. Keep skates and blade toe in view.';
+    if (await showCameraStream(stream,request)) $('#cameraInstruction').textContent = 'Wide camera. Keep your footwear and blade toe in view.';
   } catch {
     if (request !== cameraRequest) return;
     try {
@@ -439,6 +456,7 @@ $('#captureFitPhoto').addEventListener('click', () => {
   scaled.width = 0; scaled.height = 0;
 });
 $('#widePhotoInput').addEventListener('change', async event => {
+  if (!photoFitState.footwear) {event.currentTarget.value='';return;}
   const input=event.currentTarget, file=input.files?.[0];
   if(!file)return;
   input.value='';
@@ -471,7 +489,8 @@ $('#sendAIPhoto').addEventListener('click', async () => {
   const button = $('#sendAIPhoto'); button.disabled = true;
   $('#aiFitMessage').textContent = 'Checking your photo…';
   try {
-    const response = await fetch('/api/photo-fit', {method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({image:aiPhoto,consent:true})});
+    const footwear=photoFitState.footwear;
+    const response = await fetch('/api/photo-fit', {method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({image:aiPhoto,consent:true,footwear})});
     const data = await response.json();
     if (controller.signal.aborted) return;
     if (!response.ok) throw new Error(data.error || 'AI check is unavailable. Use the manual check.');
@@ -481,11 +500,11 @@ $('#sendAIPhoto').addEventListener('click', async () => {
     const result = $('#photoFitResult'); result.hidden = false; result.className = 'photo-fit-result ' + (data.status === 'starting_range' ? 'good' : 'adjust');
     result.replaceChildren();
     const looksRight = data.status === 'starting_range';
-    for (const [tag,text] of [['span','AI length check · Beta'],['h4',titles[data.status]],['p',looksRight ? 'The top of your stick is between your chin and nose with skates on.' : data.reason],['p',looksRight ? '' : data.next_step],['p',looksRight ? 'This checks length only. Try the stick to confirm it feels comfortable.' : 'A photo estimate only. Confirm flex, blade lie and comfort in person before cutting or buying.']].filter(([,text])=>text)) {
+    for (const [tag,text] of [['span',`AI length check · ${footwear==='shoes'?'regular shoes':'ice skates'}`],['h4',titles[data.status]],['p',looksRight ? footwear==='shoes'?'In regular shoes, the top appears between your upper lip and nose. Recheck on skates before cutting.':'The top of your stick is between your chin and nose with skates on.' : data.reason],['p',looksRight ? '' : data.next_step],['p',looksRight ? 'This checks length only. Try the stick to confirm it feels comfortable.' : 'A photo estimate only. Confirm flex, blade lie and comfort in person before cutting or buying.']].filter(([,text])=>text)) {
       const node = document.createElement(tag); node.textContent = text; result.append(node);
     }
     if (data.status === 'retake' && Array.isArray(data.checks)) {
-      const labels = {player:'Player',skates:'Ice skates',framing:'Full photo',posture:'Standing straight',stick_vertical:'Upright stick',toe_contact:'Blade toe on floor',landmarks:'Face and stick top'};
+      const labels = {player:'Player',skates:'Footwear',framing:'Full photo',posture:'Standing straight',stick_vertical:'Upright stick',toe_contact:'Blade toe on floor',landmarks:'Face and stick top'};
       const list = document.createElement('ul'); list.className = 'photo-check-issues';
       for (const check of data.checks.filter(c=>c.status !== 'pass' && labels[c.id])) {
         const item = document.createElement('li');
@@ -514,16 +533,16 @@ $('#fitCameraCanvas').addEventListener('click', event => {
   const point={x:(event.clientX-rect.left-(rect.width-canvas.width*scale)/2)/scale,y:(event.clientY-rect.top-(rect.height-canvas.height*scale)/2)/scale};
   if (point.x<0 || point.y<0 || point.x>canvas.width || point.y>canvas.height) return;
   const key=!photoFitState.nose?'nose':!photoFitState.chin?'chin':'stickTop';
-  if (key==='chin' && point.y<=photoFitState.nose.y) { $('#stickTopHint').textContent='Tap the chin below the nose, or choose Retake'; return; }
+  if (key==='chin' && point.y<=photoFitState.nose.y) { $('#stickTopHint').textContent=`Tap the ${photoLowerLabel()} below the nose, or choose Retake`; return; }
   photoFitState[key]=point;
   const context = canvas.getContext('2d');
   context.beginPath(); context.arc(point.x,point.y,Math.max(3,canvas.width*.006),0,Math.PI*2);
   context.fillStyle='#1ee6d1'; context.fill(); context.lineWidth=Math.max(3,canvas.width*.004); context.strokeStyle='#071426'; context.stroke();
-  $('#stickTopHint').textContent=key==='nose'?'2 of 3: Tap the bottom of the chin':key==='chin'?'3 of 3: Tap the top of the stick':'All points marked. See result or Retake to correct.';
+  $('#stickTopHint').textContent=key==='nose'?`2 of 3: Tap the ${photoLowerLabel()}`:key==='chin'?'3 of 3: Tap the top of the stick':'All points marked. See result or Retake to correct.';
   $('#finishPhotoFit').disabled=!photoFitState.stickTop;
 });
 $('#finishPhotoFit').addEventListener('click', () => {
-  const canvas=$('#fitCameraCanvas'), fit=assessGuidedStickFit(photoFitState.stickTop?.y,canvas.height,photoFitState.nose?.y,photoFitState.chin?.y), result=$('#photoFitResult');
+  const canvas=$('#fitCameraCanvas'), fit=assessGuidedStickFit(photoFitState.stickTop?.y,canvas.height,photoFitState.nose?.y,photoFitState.chin?.y,photoFitState.footwear), result=$('#photoFitResult');
   closeFitCamera(); result.hidden=false; result.className=`photo-fit-result ${fit.status==='good'?'good':'adjust'}`;
   result.innerHTML=`<span class="photo-verdict">${fit.status==='good'?'Good photo fit':'Adjustment recommended'}</span><h4>${fit.title}</h4><p>${fit.detail}</p><p class="flex-limit"><b>Photo scope:</b> standing length only. Flex and blade lie need a separate check with a coach or store fitter.</p>`;
   result.scrollIntoView({behavior:'smooth',block:'nearest'});

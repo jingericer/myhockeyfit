@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260926-camera3">
+  <link rel="stylesheet" href="styles.css?v=20260926-footwear1">
   <link rel="stylesheet" href="shin-fit.css?v=20260923-catalog4">
 </head>
 <body>
@@ -71,7 +71,7 @@
     <button type="button" class="equipment-back" id="photoBackHome">← Equipment</button>
     <p class="section-kicker">CHECK YOUR OWN STICK</p>
     <h1 id="standalonePhotoTitle" tabindex="-1">Stick Photo Fit</h1>
-    <p>No player profile needed. Check standing length with your skates on.</p>
+    <p>No player profile needed. Choose your footwear, then check standing length.</p>
     <div id="standalonePhotoSlot"></div><p><a class="volunteer-link" href="/volunteer.html">How was Photo Fit? Give feedback →</a></p>
   </section>
 
@@ -294,20 +294,20 @@
               <span class="soon-badge beta-badge">Beta</span>
               <p class="section-kicker">One photo fit check</p>
               <h3 id="storeFitTitle">Stand in the guide. Take one photo.</h3>
-              <p>Take a standing photo, then mark your nose, chin and stick top.</p>
+              <p>Choose your footwear, take a standing photo, then mark three points.</p>
             </div>
             <figure class="photo-pose-demo">
               <img src="stick-photo-demo.webp?v=20260926-youth1" alt="A youth player standing upright in ice hockey skates, holding a vertical stick beside the body with its blade toe (front tip) on the floor. The complete head, skates and stick are visible." width="1024" height="1536" loading="lazy">
-              <figcaption>Example stance · AI generated illustration</figcaption>
+              <figcaption>Example stance with skates · AI generated illustration</figcaption>
             </figure>
             <ol class="pose-list">
-              <li><span>1</span><div><b>Skates on. Stand straight.</b><small>Keep your head, skates and full stick in the photo.</small></div></li>
+              <li><span>1</span><div><b>Stand straight.</b><small>Keep your head, footwear and full stick in the photo.</small></div></li>
               <li><span>2</span><div><b>Keep the stick vertical</b><small>Rest the toe (front tip) on the floor. Keep the heel raised.</small></div></li>
-              <li><span>3</span><div><b>Mark three points</b><small>Tap the nose, chin and stick top to check length.</small></div></li>
+              <li><span>3</span><div><b>Mark three points</b><small id="photoMarkerDescription">Tap the nose, chin and stick top to check length.</small></div></li>
             </ol>
-
-            <div class="camera-start-card">
-              <div><b>Ready to check the stick?</b><small>Ask someone to hold the phone. Keep your head, both skates and the full stick in view.</small></div>
+            <div class="photo-footwear-step" id="photoFootwearStep"><b>What are you wearing?</b><div class="photo-footwear-answers"><button type="button" data-footwear="skates">Ice skates</button><button type="button" data-footwear="shoes">Regular shoes</button></div><small>Choose one to continue to the photo.</small></div>
+            <div class="camera-start-card" id="photoCameraStep" hidden>
+              <div><b id="photoReadyTitle">Ready to check the stick?</b><small id="photoReadyHint">Ask someone to hold the phone. Keep your head, footwear and the full stick in view.</small><button type="button" class="photo-footwear-change" id="changePhotoFootwear">Change footwear</button></div>
               <button type="button" class="open-camera-button" id="openFitCamera">Open camera</button>
               <div class="photo-wide-option"><label for="widePhotoInput">Need more room in the frame? <b>Choose a wide photo →</b></label><small>Take a photo in your phone’s Camera app at 0.5× if available, then select it here.</small><input id="widePhotoInput" type="file" accept="image/*" aria-label="Choose a photo taken with your phone camera"></div>
             </div>
@@ -384,7 +384,7 @@
           <g class="face-levels"><path d="M209 97H307M209 120H307"/><text x="215" y="90">NOSE</text><text x="215" y="137">CHIN</text></g>
           <path class="camera-stick-outline" d="M292 109V567Q292 578 308 584L329 591Q336 594 333 606Q305 603 289 590Q282 582 282 567V109Z"/>
           <path class="camera-ground-line" d="M25 606H337"/>
-          <text class="camera-ground-label" x="180" y="628" text-anchor="middle">SKATES AND BLADE TOE ON THE FLOOR</text>
+          <text class="camera-ground-label" id="photoGroundLabel" x="180" y="628" text-anchor="middle">FOOTWEAR AND BLADE TOE ON THE FLOOR</text>
         </svg>
       </div>
       <div class="tap-hint" id="stickTopHint" hidden>Tap the top of the stick</div>
@@ -403,7 +403,7 @@
     </div>
   </div>
   <script src="review-data.js?v=20260923-reviews1"></script>
-  <script src="app.js?v=20260926-wide2"></script>
+  <script src="app.js?v=20260926-footwear1"></script>
   <script src="shin-data.js?v=20260923-catalog4"></script>
   <script src="shin-fit.js?v=20260923-catalog4"></script>
 </body>

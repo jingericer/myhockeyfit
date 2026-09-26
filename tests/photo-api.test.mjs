@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import worker, {PhotoHourlyLimiter} from '../worker.mjs';
 const env = {OPENAI_API_KEY:'test-only',PHOTO_LIMITER:{limit:async()=>({success:true})},PHOTO_HOURLY:{idFromName:key=>key,get:()=>({fetch:async()=>Response.json({allowed:true})})},ASSETS:{fetch:async()=>new Response('asset')}};
 const checks = ['player','skates','framing','posture','stick_vertical','toe_contact','landmarks'].map(id=>({id,status:id==='toe_contact'?'unclear':'pass',evidence:id==='toe_contact'?'Blade tip is hidden.':'Visible.',fix:id==='toe_contact'?'Show the blade tip touching the floor.':''}));
-const photo = {consent:true,image:'data:image/jpeg;base64,/9j/'+ 'A'.repeat(100)};
+const photo = {consent:true,footwear:'skates',image:'data:image/jpeg;base64,/9j/'+ 'A'.repeat(100)};
 const request = (body=photo,headers={}) => new Request('https://myhockeyfit.com/api/photo-fit',{method:'POST',headers:{Origin:'https://myhockeyfit.com','CF-Connecting-IP':'192.0.2.1','Content-Type':'application/json',...headers},body:JSON.stringify(body)});
 test('configuration and static routing',async()=>{
  assert.deepEqual(await (await worker.fetch(new Request('https://myhockeyfit.com/api/photo-fit'),{})).json(),{enabled:false});
@@ -15,6 +15,7 @@ test('invalid origin, consent, image, size and throttled requests never reach Op
  try{
   assert.equal((await worker.fetch(request(photo,{Origin:'https://other.example'}),env)).status,403);
   assert.equal((await worker.fetch(request({...photo,consent:false}),env)).status,400);
+  assert.equal((await worker.fetch(request({...photo,footwear:'unknown'}),env)).status,400);
   assert.equal((await worker.fetch(request({...photo,image:'https://internal.example'}),env)).status,400);
   assert.equal((await worker.fetch(request({...photo,image:'A'.repeat(2200001)}),env)).status,413);
   const minute=await worker.fetch(request(),{...env,PHOTO_LIMITER:{limit:async()=>({success:false})}});assert.equal(minute.status,429);assert.equal(minute.headers.get('Retry-After'),'60');assert.match((await minute.json()).error,/10 AI checks per minute/);
@@ -36,6 +37,8 @@ test('structured assessment, no response storage, no raw upstream errors',async(
   const passed=checks.map(c=>({...c,status:'pass',fix:''}));
   globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'starting_range',reason:'Length looks right.',next_step:'Try it.',checks:passed})}]}]});
   assert.equal((await (await worker.fetch(request(),env)).json()).status,'starting_range');
+  globalThis.fetch=async(url,options)=>{const body=JSON.parse(options.body);assert.match(body.input[0].content[0].text,/regular shoes/);return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'starting_range',reason:'Shoe range.',next_step:'Recheck in skates.',checks:passed})}]}]});};
+  assert.equal((await (await worker.fetch(request({...photo,footwear:'shoes'}),env)).json()).status,'starting_range');
   globalThis.fetch=async()=>new Response('sensitive upstream debug',{status:401});
   const error=await worker.fetch(request(),env);assert.equal(error.status,502);assert(!(await error.text()).includes('sensitive'));
   globalThis.fetch=async()=>Response.json({status:'completed',output:[]});assert.equal((await worker.fetch(request(),env)).status,502);
