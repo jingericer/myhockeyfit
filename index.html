@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260926-volunteer1">
+  <link rel="stylesheet" href="styles.css?v=20260926-camera2">
   <link rel="stylesheet" href="shin-fit.css?v=20260923-catalog4">
 </head>
 <body>
@@ -307,8 +307,9 @@
             </ol>
 
             <div class="camera-start-card">
-              <div><b>Ready to check the stick?</b><small>Ask another person to hold the phone. Use a bright area with a simple background.</small></div>
+              <div><b>Ready to check the stick?</b><small>Ask someone to hold the phone. Keep your head, both skates and the full stick in view.</small></div>
               <button type="button" class="open-camera-button" id="openFitCamera">Open camera</button>
+              <div class="photo-wide-option"><label for="widePhotoInput">Need more room in the frame? <b>Choose a wide photo →</b></label><small>Take a photo in your phone’s Camera app at 0.5× if available, then select it here.</small><input id="widePhotoInput" type="file" accept="image/*" aria-label="Choose a photo taken with your phone camera"></div>
             </div>
             <div class="photo-fit-result" id="photoFitResult" role="status" hidden></div>
             <p class="photo-privacy">Manual check stays on your device. Optional AI check sends the photo to OpenAI. MyHockeyFit does not save photos.</p>
@@ -401,7 +402,7 @@
     </div>
   </div>
   <script src="review-data.js?v=20260923-reviews1"></script>
-  <script src="app.js?v=20260926-checks1"></script>
+  <script src="app.js?v=20260926-wide1"></script>
   <script src="shin-data.js?v=20260923-catalog4"></script>
   <script src="shin-fit.js?v=20260923-catalog4"></script>
 </body>

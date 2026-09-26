@@ -87,3 +87,15 @@
 .photo-check-issues{padding-left:20px;margin:14px 0}.photo-check-issues li{margin:12px 0}.photo-check-issues b,.photo-check-issues span{display:block}.photo-check-issues span{margin-top:3px;font-size:13px}.photo-retry-button{background:#082035;color:#fff;border:0;border-radius:8px;padding:12px 18px;font-weight:700}
 
 .volunteer-link{display:block;color:#087d75;font-size:14px;text-decoration:none;padding:15px 0}.volunteer-link span{display:block;color:#637487;font-size:12px;margin-top:5px}.volunteer-link:hover{text-decoration:underline}
+
+/* Show the complete camera frame, including edges that previously cropped the player. */
+.camera-stage video,.camera-stage canvas{object-fit:contain}
+.photo-wide-option{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.18);padding-top:14px}
+.photo-wide-option label{display:block;cursor:pointer;font-size:12px;color:#fff}
+.photo-wide-option label b{color:#1ee6d1}
+.photo-wide-option small{display:block;font-size:10px;color:#b8ced9;margin-top:5px;line-height:1.5}
+.photo-wide-option input{display:block;margin-top:10px;max-width:100%;font-size:11px;color:#e6f3f5}
+
+/* The home heading follows the logo without a forced empty hero area. */
+.equipment-home-hero{min-height:0;justify-content:flex-start;gap:26px;padding-top:24px;padding-bottom:30px}
+@media(max-width:520px){.equipment-home-hero{min-height:0;gap:24px;padding:22px 24px 28px}}

@@ -334,6 +334,15 @@ function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY) {
   return {status:'good',title:'Your stick length looks right',detail:'Your marks put the stick top between your chin and nose. This assumes you have skates on and the stick is upright with its blade toe (front tip) on the floor.'};
 }
 
+function alignFitCameraGuide() {
+  const video=$('#fitCameraVideo'), stage=$('.camera-stage'), overlay=$('#fitCameraOverlay');
+  if(!video.videoWidth||!video.videoHeight||!stage.clientWidth||!stage.clientHeight)return;
+  const scale=Math.min(stage.clientWidth/video.videoWidth,stage.clientHeight/video.videoHeight);
+  const width=video.videoWidth*scale,height=video.videoHeight*scale;
+  Object.assign(overlay.style,{width:`${width}px`,height:`${height}px`,left:`${(stage.clientWidth-width)/2}px`,top:`${(stage.clientHeight-height)/2}px`,right:'auto',bottom:'auto'});
+}
+window.addEventListener('resize',()=>{if(!$('#cameraModal').hidden)alignFitCameraGuide()});
+
 function stopFitCamera() {
   if (photoFitState.stream) photoFitState.stream.getTracks().forEach(track => track.stop());
   photoFitState.stream = null; $('#fitCameraVideo').srcObject = null;
@@ -362,10 +371,10 @@ async function openFitCamera() {
   result.hidden = true; modal.hidden = false; document.body.classList.add('camera-open'); setCapturedMode(false);
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
-    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1080},height:{ideal:1920}}});
+    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1440},height:{ideal:1080},aspectRatio:{ideal:4/3}}});
     if (request !== cameraRequest) { stream.getTracks().forEach(track => track.stop()); return; }
     photoFitState.stream = stream;
-    const video = $('#fitCameraVideo'); video.srcObject = photoFitState.stream; await video.play();
+    const video = $('#fitCameraVideo'); video.srcObject = photoFitState.stream; await video.play(); alignFitCameraGuide();
   } catch (error) {
     if (request !== cameraRequest) return;
     stopFitCamera(); modal.hidden = true; document.body.classList.remove('camera-open');
@@ -383,12 +392,8 @@ window.addEventListener('pagehide', resetPhotoFit);
 $('#captureFitPhoto').addEventListener('click', () => {
   const video = $('#fitCameraVideo'), canvas = $('#fitCameraCanvas');
   if (!video.videoWidth || !video.videoHeight) return;
-  const rect=video.getBoundingClientRect();
-  if (!rect.width || !rect.height) return;
-  const scale=Math.max(rect.width/video.videoWidth,rect.height/video.videoHeight);
-  const sw=rect.width/scale, sh=rect.height/scale;
-  canvas.width=Math.round(sw); canvas.height=Math.round(sh);
-  canvas.getContext('2d').drawImage(video,(video.videoWidth-sw)/2,(video.videoHeight-sh)/2,sw,sh,0,0,canvas.width,canvas.height);
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
   stopFitCamera(); setCapturedMode(true);
   const scaled = document.createElement('canvas');
   const ratio = Math.min(1,1600 / Math.max(canvas.width,canvas.height));
@@ -396,6 +401,32 @@ $('#captureFitPhoto').addEventListener('click', () => {
   scaled.getContext('2d').drawImage(canvas,0,0,scaled.width,scaled.height);
   aiPhoto = scaled.toDataURL('image/jpeg',0.8);
   scaled.width = 0; scaled.height = 0;
+});
+$('#widePhotoInput').addEventListener('change', async event => {
+  const input=event.currentTarget, file=input.files?.[0];
+  if(!file)return;
+  input.value='';
+  const result=$('#photoFitResult');
+  if(!file.type.startsWith('image/') || file.size>25*1024*1024){result.hidden=false;result.className='photo-fit-result warning';result.textContent='Choose an image under 25 MB.';return;}
+  const request=++cameraRequest;
+  const photoUrl=URL.createObjectURL(file);
+  const photo=new Image();
+  photo.onload=()=>{
+    URL.revokeObjectURL(photoUrl);
+    if(request!==cameraRequest)return;
+    const width=photo.naturalWidth,height=photo.naturalHeight;
+    if(!width||!height){result.hidden=false;result.textContent='Could not read this photo. Try a JPEG or PNG.';return;}
+    const scale=Math.min(1,1600/Math.max(width,height));
+    const canvas=$('#fitCameraCanvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+    canvas.getContext('2d').drawImage(photo,0,0,canvas.width,canvas.height);
+    stopFitCamera();$('#cameraModal').hidden=false;document.body.classList.add('camera-open');
+    result.hidden=true;setCapturedMode(true);
+    aiPhoto=canvas.toDataURL('image/jpeg',.75);
+    if(aiPhoto.length>2100000)aiPhoto=canvas.toDataURL('image/jpeg',.6);
+    refreshAIStatus();
+  };
+  photo.onerror=()=>{URL.revokeObjectURL(photoUrl);if(request!==cameraRequest)return;result.hidden=false;result.className='photo-fit-result warning';result.textContent='Could not read this photo. Try a JPEG or PNG.';};
+  photo.src=photoUrl;
 });
 $('#sendAIPhoto').addEventListener('click', async () => {
   if (!aiPhoto || aiController) return;
