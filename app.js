@@ -331,7 +331,7 @@ function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY) {
   if (![stickTopY,canvasHeight,noseY,chinY].every(Number.isFinite) || canvasHeight<=0 || noseY<0 || chinY<=noseY || chinY>canvasHeight || stickTopY<0 || stickTopY>canvasHeight) return {status:'unclear',title:'Check the photo markers',detail:'Mark the actual nose, chin and stick top. Retake if the face or complete stick is not visible.'};
   if (stickTopY < noseY) return {status:'long',title:'The stick may be too long',detail:'The marked stick top is above the marked nose. Confirm the length in person before cutting.'};
   if (stickTopY > chinY) return {status:'short',title:'The stick may be too short',detail:'The marked stick top is below the marked chin. Compare a longer stick in store.'};
-  return {status:'good',title:'The length is within the starting range',detail:'The marked stick top is between the marked chin and nose. This estimate assumes skates on, an upright stick and the blade touching the same floor as the skates.'};
+  return {status:'good',title:'Your stick length looks right',detail:'Your marks put the stick top between your chin and nose. This assumes you have skates on and the stick is upright with its blade on the floor.'};
 }
 
 function stopFitCamera() {
@@ -408,12 +408,13 @@ $('#sendAIPhoto').addEventListener('click', async () => {
     const data = await response.json();
     if (controller.signal.aborted) return;
     if (!response.ok) throw new Error(data.error || 'AI check is unavailable. Use the manual check.');
-    const titles = {short:'Stick appears short',starting_range:'Within the starting length range',long:'Stick appears long',retake:'Retake this photo'};
+    const titles = {short:'Stick appears short',starting_range:'Your stick length looks right',long:'Stick appears long',retake:'Retake this photo'};
     if (!titles[data.status] || typeof data.reason !== 'string' || typeof data.next_step !== 'string') throw new Error('AI returned an unclear result. Use the manual check.');
     closeFitCamera();
     const result = $('#photoFitResult'); result.hidden = false; result.className = 'photo-fit-result ' + (data.status === 'starting_range' ? 'good' : 'adjust');
     result.replaceChildren();
-    for (const [tag,text] of [['span','AI length check · Beta'],['h4',titles[data.status]],['p',data.reason],['p',data.next_step],['p','A photo estimate only. Confirm flex, blade lie and comfort in person before cutting or buying.']]) {
+    const looksRight = data.status === 'starting_range';
+    for (const [tag,text] of [['span','AI length check · Beta'],['h4',titles[data.status]],['p',looksRight ? 'The top of your stick is between your chin and nose with skates on.' : data.reason],['p',looksRight ? '' : data.next_step],['p',looksRight ? 'This checks length only. Try the stick to confirm it feels comfortable.' : 'A photo estimate only. Confirm flex, blade lie and comfort in person before cutting or buying.']].filter(([,text])=>text)) {
       const node = document.createElement(tag); node.textContent = text; result.append(node);
     }
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
