@@ -6,7 +6,11 @@
     "directory": ".",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/",
+      "/index.html",
+      "/volunteer.html",
+      "/team.html"
     ]
   },
   "ratelimits": [
@@ -43,6 +47,10 @@
       {
         "name": "TEAM_INBOX",
         "class_name": "TeamInbox"
+      },
+      {
+        "name": "USAGE_STATS",
+        "class_name": "UsageStats"
       }
     ]
   },
@@ -63,6 +71,12 @@
       "tag": "team-inbox-v1",
       "new_sqlite_classes": [
         "TeamInbox"
+      ]
+    },
+    {
+      "tag": "usage-stats-v1",
+      "new_sqlite_classes": [
+        "UsageStats"
       ]
     }
   ]

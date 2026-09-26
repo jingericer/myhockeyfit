@@ -28,6 +28,19 @@ Only for a suitable photo, use the footwear stated in the user message. With ice
 Never infer flex, stiffness, player identity, age, skill, exact centimetres, cutting amounts, blade lie, or protective safety. Never recommend cutting based on this photo alone.
 Return concise English: reason at most 30 words describing visible evidence; next_step at most 25 words giving a practical next action. For starting_range advise confirming comfort and control with a coach or fitter. For short or long advise a physical fitting check before changes. No markdown or decorative hyphens.`;
 const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+const trackedPages={'/':'Home','/index.html':'Home','/volunteer.html':'Volunteer testing','/team.html':'Project team'};
+async function recordUsage(request,env,ctx,page,kind){
+  try{
+    if(!env.USAGE_STATS||!env.FEEDBACK_ADMIN_TOKEN)return;
+    const ip=request.headers.get('CF-Connecting-IP');if(!ip)return;
+    const day=new Date().toISOString().slice(0,10);
+    const secret=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.FEEDBACK_ADMIN_TOKEN),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+    const digest=await crypto.subtle.sign('HMAC',secret,new TextEncoder().encode(`${day}:${ip}`));
+    const visitor=Array.from(new Uint8Array(digest).slice(0,10),n=>n.toString(16).padStart(2,'0')).join('');
+    const job=env.USAGE_STATS.get(env.USAGE_STATS.idFromName('community')).fetch('https://stats/record',{method:'POST',body:JSON.stringify({day,visitor,page,kind})});
+    if(ctx?.waitUntil)ctx.waitUntil(job.catch(()=>{}));else await job.catch(()=>{});
+  }catch{}
+}
 async function readLimited(request, maxBytes = MAX_BYTES) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('invalid');
@@ -43,9 +56,19 @@ async function readLimited(request, maxBytes = MAX_BYTES) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith('/api/')) {
+      const response=await env.ASSETS.fetch(request);
+      if(request.method==='GET' && response.ok && trackedPages[url.pathname] && !request.headers.get('Sec-Purpose')?.includes('prefetch'))await recordUsage(request,env,ctx,trackedPages[url.pathname],'page');
+      return response;
+    }
+    if(url.pathname==='/api/usage-stats'){
+      if(request.method!=='GET')return reply({error:'Method not allowed'},405);
+      const denied=await verifyAdmin(request,env);if(denied)return denied;
+      if(!env.USAGE_STATS)return reply({error:'Usage statistics are not configured yet.'},503);
+      return env.USAGE_STATS.get(env.USAGE_STATS.idFromName('community')).fetch('https://stats/report');
+    }
     if (url.pathname === '/api/feedback') return handleFeedback(request,env);
     if (url.pathname === '/api/team-apply' || url.pathname === '/api/team-applications') return handleTeam(request,env);
     if (url.pathname !== '/api/photo-fit') return reply({error:'Not found'}, 404);
@@ -82,6 +105,7 @@ export default {
       }
       if (limit.allowed !== true) throw new Error('invalid limiter response');
     } catch { return reply({error:'AI check is temporarily unavailable. Use the manual check.'},503); }
+    await recordUsage(request,env,ctx,'Photo Fit','ai_request');
     try {
       const response = await fetch('https://api.openai.com/v1/responses', {
         method:'POST', signal:AbortSignal.timeout(30000),
@@ -98,6 +122,7 @@ export default {
       if (!statuses.includes(result.status) || typeof result.reason !== 'string' || typeof result.next_step !== 'string' || result.reason.length > 600 || result.next_step.length > 500) throw new Error('invalid');
       if (!Array.isArray(result.checks) || result.checks.length !== checkIds.length || new Set(result.checks.map(c=>c.id)).size !== checkIds.length || result.checks.some(c=>!checkIds.includes(c.id) || !['pass','fail','unclear'].includes(c.status) || typeof c.evidence !== 'string' || c.evidence.length > 240 || typeof c.fix !== 'string' || c.fix.length > 300 || (c.status !== 'pass' && !c.fix.trim()))) throw new Error('invalid checks');
       const blocked = result.checks.some(c=>c.status !== 'pass');
+      await recordUsage(request,env,ctx,'Photo Fit','ai_result');
       return reply({status:blocked ? 'retake' : result.status,reason:blocked ? 'Please fix the items below, then take another photo.' : result.reason,next_step:blocked ? '' : result.next_step,checks:result.checks});
     } catch { return reply({error:'AI could not complete this check. Try again or use the manual check.'}, 502); }
   }
@@ -123,6 +148,40 @@ export class PhotoHourlyLimiter {
       const times = (await this.state.storage.get('times') || []).filter(t=>t > Date.now()-3600000);
       if (times.length) await this.state.storage.setAlarm(times[times.length-1]+3600000);
       else await this.state.storage.deleteAll();
+    });
+  }
+}
+export class UsageStats {
+  constructor(state){
+    this.state=state;this.sql=state.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, visitor TEXT NOT NULL, page TEXT NOT NULL, kind TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY(day, visitor, page, kind))');
+  }
+  async fetch(request){
+    const route=new URL(request.url).pathname;
+    if(route==='/report' && request.method==='GET'){
+      const since=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
+      const stats=this.sql.exec('SELECT day, visitor, page, kind, count FROM usage WHERE day >= ? ORDER BY day DESC',since).toArray();
+      const daily=new Map(),pages=new Map(),visitors=new Map(),all=new Set();let pageViews=0,aiRequests=0,aiResults=0;
+      for(const row of stats){
+        const bucket=daily.get(row.day)||{day:row.day,views:0,visitors:new Set(),aiRequests:0,aiResults:0};
+        const who=visitors.get(row.day+':'+row.visitor)||{day:row.day,id:row.visitor,views:0,aiRequests:0,aiResults:0,pages:new Set()};
+        if(row.kind==='page'){
+          pageViews+=row.count;bucket.views+=row.count;bucket.visitors.add(row.visitor);all.add(row.day+':'+row.visitor);
+          pages.set(row.page,(pages.get(row.page)||0)+row.count);who.views+=row.count;who.pages.add(row.page);
+        }else if(row.kind==='ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;}
+        else if(row.kind==='ai_result'){aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;}
+        daily.set(row.day,bucket);visitors.set(row.day+':'+row.visitor,who);
+      }
+      return reply({since,summary:{pageViews,visitorDays:all.size,aiRequests,aiResults},daily:[...daily.values()].map(d=>({...d,visitors:d.visitors.size})),pages:[...pages].map(([page,views])=>({page,views})).sort((a,b)=>b.views-a.views),visitors:[...visitors.values()].sort((a,b)=>b.day.localeCompare(a.day)||b.views-a.views).slice(0,200).map(v=>({...v,pages:[...v.pages]}))});
+    }
+    if(route!=='/record'||request.method!=='POST')return reply({error:'Not found'},404);
+    let entry;try{entry=await request.json();}catch{return reply({error:'Invalid record'},400);}
+    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!['Home','Volunteer testing','Project team','Photo Fit'].includes(entry.page)||!['page','ai_request','ai_result'].includes(entry.kind))return reply({error:'Invalid record'},400);
+    return this.state.blockConcurrencyWhile(async()=>{
+      this.sql.exec('INSERT INTO usage (day, visitor, page, kind, count) VALUES (?,?,?,?,1) ON CONFLICT(day,visitor,page,kind) DO UPDATE SET count=count+1',entry.day,entry.visitor,entry.page,entry.kind);
+      const since=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
+      this.sql.exec('DELETE FROM usage WHERE day < ?',since);
+      return reply({ok:true});
     });
   }
 }
