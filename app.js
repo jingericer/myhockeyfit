@@ -66,6 +66,7 @@ const productFamilies = [
   ,{ brand:'Sherwood', name:'REKKER Morph 3', kick:'Low', tiers:['recreational','developing'], prices:{Youth:79.99,Junior:109.99,Intermediate:139.99,Senior:149.99}, flexes:[20,30,40,50,55,65,75,85], url:'https://sherwoodhockey.com/collections/hockey-sticks' }
   ,{ brand:'Sherwood', name:'REKKER Morph 2', kick:'Low', tiers:['developing','competitive'], prices:{Youth:109.99,Junior:159.99,Intermediate:209.99,Senior:229.99}, flexes:[20,30,40,50,55,65,75,85], url:'https://sherwoodhockey.com/collections/hockey-sticks' }
   ,{ brand:'Sherwood', name:'REKKER Morph 1', kick:'Low', tiers:['competitive','elite'], prices:{Youth:159.99,Junior:239.99,Intermediate:319.99,Senior:349.99}, flexes:[30,40,50,55,65,75,85], url:'https://sherwoodhockey.com/collections/hockey-sticks' }
+  ,{ brand:'Bauer', name:'Vapor', kick:'Low', tiers:['recreational','developing'], flexes:[20,30], url:'https://ca.bauer.com/collections/hockey-sticks' }
 ];
 
 // Exact model and size pages checked against official catalogs on 2026-09-23.
@@ -126,6 +127,9 @@ const stickProductLinks = {
   "Sherwood|REKKER Morph 1|Senior": "https://sherwoodhockey.com/products/sherwood-rekker-morph-1-senior-hockey-stick",
   "TRUE|HZRDUS 7X4|Senior": "https://www.true-sports.com/en-ca/hzrdus-7x4-senior-hockey-stick.html",
   "TRUE|HZRDUS 7X4|Intermediate": "https://www.hockeymonkey.ca/true-hockey-stick-hzrdus-7x4-int.html"
+  ,"Bauer|Vapor|Youth": "https://ca.bauer.com/products/bauer-vapor-youth-grip-stick"
+  ,"Bauer|Vapor|Junior": "https://ca.bauer.com/products/bauer-vapor-junior-grip-stick"
+  ,"Warrior|Alpha LX3|Junior": "https://www.sportchek.ca/en/pdp/warrior-alpha-lx3-junior-hockey-stick-83597787f.html"
 };
 
 function productDestination(product, fit, profile) {
@@ -235,8 +239,9 @@ function customerReviews(product, stickClass) {
 function rankProducts(profile, fit) {
   const desiredTier = tierScore[profile.level];
   return productFamilies.map(product => {
-    const price = product.prices[fit.stickClass];
     const optionFlex = nearest(fit.flex, product.flexes);
+    const verified = window.stickCanadianPrices?.[`${product.brand}|${product.name}|${fit.stickClass}`];
+    const price = verified?.flexPrices ? verified.flexPrices[String(optionFlex)] : verified?.price;
     const flexGap = Math.abs(optionFlex-fit.flex);
     const hasFlex = flexGap <= 3;
     const productTier = Math.max(...product.tiers.map(t => tierScore[t]));
@@ -245,8 +250,8 @@ function rankProducts(profile, fit) {
     score -= fit.kick === 'Compare' || product.kick === fit.kick ? 0 : (fit.kick === 'Hybrid' ? 4 : 13);
     score -= flexGap * 2.5;
     const review = reviewsFor(product,fit.stickClass)[0];
-    return {...product, price, score:Math.round(score), productTier, hasFlex, optionFlex, review};
-  }).filter(p => Number.isFinite(p.price) && (profile.budget === 999 || p.price <= profile.budget) && (!profile.reviewsOnly || p.review?.rating > 4)).sort((a,b) => b.score-a.score).slice(0,15)
+    return {...product, price:Number.isFinite(price) ? price : null, priceSource:Number.isFinite(price) ? verified.brand : null, score:Math.round(score), productTier, hasFlex, optionFlex, review};
+  }).filter(p => (profile.budget === 999 || (p.price !== null && p.price <= profile.budget)) && (!profile.reviewsOnly || p.review?.rating > 4)).sort((a,b) => b.score-a.score).slice(0,15)
     .map((product,index) => ({...product, matchRank:index+1}));
 }
 
@@ -259,7 +264,7 @@ function reasonFor(product, profile, fit) {
 }
 function badgeFor(product, index, profile) {
   if (product === state.results[0]) return '<span class="badge best">First to compare</span>';
-  if (product.price === Math.min(...state.results.map(x=>x.price))) return '<span class="badge">Budget pick</span>';
+  if (product.price !== null && product.price === Math.min(...state.results.map(x=>x.price).filter(Number.isFinite))) return '<span class="badge">Budget pick</span>';
   if (product.productTier === 4) return '<span class="badge level">Elite option</span>';
   return '<span class="badge">Alternative</span>';
 }
@@ -267,7 +272,7 @@ function renderProducts(sort='match') {
   state.sort = sort;
   let products = [...state.results];
   if (sort === 'match') products.sort((a,b)=>a.matchRank-b.matchRank);
-  if (sort === 'price') products.sort((a,b)=>a.price-b.price);
+  if (sort === 'price') products.sort((a,b)=>(a.price ?? Infinity)-(b.price ?? Infinity));
   if (sort === 'level') products.sort((a,b)=>a.productTier-b.productTier || b.score-a.score);
   if (sort === 'reviews') products.sort((a,b)=>(b.review?.rating ?? -1)-(a.review?.rating ?? -1) || (b.review?.count ?? 0)-(a.review?.count ?? 0) || a.matchRank-b.matchRank);
   products = products.slice(0,state.visibleCount);
@@ -282,9 +287,9 @@ function renderProducts(sort='match') {
         <div class="spec-row"><span>Level <b>${p.tiers.map(t=>t[0].toUpperCase()+t.slice(1)).join(' / ')}</b></span><span>Kick <b>${p.kick}</b></span><span>Available flex <b>${p.optionFlex}${p.hasFlex ? '' : '*'}</b></span></div>
         ${customerReviews(p,fit.stickClass)}
       </div>
-      <div class="stick-buy"><small>REFERENCE CAD</small><strong>$${p.price.toFixed(2)}</strong><a href="${productDestination(p,fit,profile).url}" target="_blank" rel="noopener" aria-label="${productDestination(p,fit,profile).kind === 'product' ? 'View' : 'Search for'} ${p.brand} ${p.name} ${fit.stickClass}">${productDestination(p,fit,profile).label}</a></div>
+      <div class="stick-buy"><small>${p.price === null ? 'CANADIAN PRICE' : 'REFERENCE CAD'}</small><strong>${p.price === null ? 'Check store' : `$${p.price.toFixed(2)}`}</strong>${p.priceSource ? `<small>${p.priceSource} · Sep 26</small>` : ''}<a href="${productDestination(p,fit,profile).url}" target="_blank" rel="noopener" aria-label="${productDestination(p,fit,profile).kind === 'product' ? 'View' : 'Search for'} ${p.brand} ${p.name} ${fit.stickClass}">${productDestination(p,fit,profile).label}</a></div>
     </article>`).join('') || '<p>No options meet these filters. Try turning off the review filter or changing your budget.</p>';
-  $('#budgetResultsNote').textContent = `${state.results.length} options${profile.budget === 999 ? ' across all prices' : ` at CAD $${profile.budget} or less`}. Prices exclude tax and shipping.`;
+  $('#budgetResultsNote').textContent = `${state.results.length} options${profile.budget === 999 ? ', including models whose Canadian price needs checking' : ` with verified Canadian prices at CAD $${profile.budget} or less`}. Prices exclude tax and shipping.`;
   const more = $('#showMoreButton');
   const remaining = state.results.length-state.visibleCount;
   more.hidden = remaining <= 0;
