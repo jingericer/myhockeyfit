@@ -9,3 +9,7 @@ Cloudflare provisions FEEDBACK_INBOX on deploy. Its SQLite feedback table holds 
 To download feedback, the owner can add a Cloudflare Worker secret named FEEDBACK_ADMIN_TOKEN with a random private value. GET /api/feedback requires Authorization: Bearer followed by that value and returns JSON. With no secret configured, all exports are denied. Never put the token in the webpage, URL, source control or a public chat. Use an authenticated API client and save the JSON privately. This optional secret is only for reading feedback; submissions work without it.
 
 There is no email notification and names are never published automatically. Feedback remains until the owner deletes it from storage. No public administrative endpoint for deletion is exposed.
+
+## Admin page
+
+Open /admin.html and sign in with the value of FEEDBACK_ADMIN_TOKEN. This secret must be configured in Cloudflare, never committed to GitHub. The page lists feedback and exports CSV with spreadsheet formula escaping. Password and results are held only in page memory, cleared on sign out/page exit and after 15 minutes without a refresh. All reads require server authentication; login requests are limited to five per minute per IP per location. The page itself contains no private data.

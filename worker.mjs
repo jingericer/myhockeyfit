@@ -129,7 +129,17 @@ export class PhotoHourlyLimiter {
 async function handleFeedback(request,env) {
   if (!env.FEEDBACK_INBOX) return reply({error:'Feedback is temporarily unavailable.'},503);
   if (request.method === 'GET') {
-    if (!env.FEEDBACK_ADMIN_TOKEN || request.headers.get('Authorization') !== `Bearer ${env.FEEDBACK_ADMIN_TOKEN}`) return reply({error:'Not authorized'},403);
+    if (!env.FEEDBACK_ADMIN_TOKEN) return reply({error:'Admin access is not configured yet. Set the FEEDBACK_ADMIN_TOKEN secret in Cloudflare.'},503);
+    try {
+      if (!env.ADMIN_LIMITER) throw new Error('missing limiter');
+      const limited=await env.ADMIN_LIMITER.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'});
+      if(!limited.success){const response=reply({error:'Too many sign in attempts. Please wait 60 seconds.'},429);response.headers.set('Retry-After','60');return response;}
+    } catch {return reply({error:'Admin sign in is temporarily unavailable.'},503);}
+    const supplied=request.headers.get('Authorization')||'';
+    const encoder=new TextEncoder();
+    const [actual,expected]=await Promise.all([supplied,`Bearer ${env.FEEDBACK_ADMIN_TOKEN}`].map(value=>crypto.subtle.digest('SHA-256',encoder.encode(value))));
+    const a=new Uint8Array(actual),b=new Uint8Array(expected);let mismatch=0;for(let i=0;i<a.length;i++)mismatch|=a[i]^b[i];
+    if(mismatch) return reply({error:'Incorrect password. Please try again.'},403);
     const inbox=env.FEEDBACK_INBOX.get(env.FEEDBACK_INBOX.idFromName('community'));
     return inbox.fetch('https://inbox/export');
   }
