@@ -27,6 +27,10 @@
       {
         "name": "PHOTO_HOURLY",
         "class_name": "PhotoHourlyLimiter"
+      },
+      {
+        "name": "FEEDBACK_INBOX",
+        "class_name": "FeedbackInbox"
       }
     ]
   },
@@ -35,6 +39,12 @@
       "tag": "photo-hourly-v1",
       "new_sqlite_classes": [
         "PhotoHourlyLimiter"
+      ]
+    },
+    {
+      "tag": "feedback-v1",
+      "new_sqlite_classes": [
+        "FeedbackInbox"
       ]
     }
   ]

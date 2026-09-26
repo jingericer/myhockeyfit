@@ -28,14 +28,14 @@ Only for a suitable photo, compare the actual stick butt end with the actual chi
 Never infer flex, stiffness, player identity, age, skill, exact centimetres, cutting amounts, blade lie, or protective safety. Never recommend cutting based on this photo alone.
 Return concise English: reason at most 30 words describing visible evidence; next_step at most 25 words giving a practical next action. For starting_range advise confirming comfort and control with a coach or fitter. For short or long advise a physical fitting check before changes. No markdown or decorative hyphens.`;
 const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
-async function readLimited(request) {
+async function readLimited(request, maxBytes = MAX_BYTES) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('invalid');
   let size = 0; const chunks = [];
   while (true) {
     const {done, value} = await reader.read(); if (done) break;
     size += value.byteLength;
-    if (size > MAX_BYTES) { await reader.cancel(); throw new Error('large'); }
+    if (size > maxBytes) { await reader.cancel(); throw new Error('large'); }
     chunks.push(value);
   }
   const bytes = new Uint8Array(size); let offset = 0;
@@ -46,6 +46,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (url.pathname === '/api/feedback') return handleFeedback(request,env);
     if (url.pathname !== '/api/photo-fit') return reply({error:'Not found'}, 404);
     const enabled = !!env.OPENAI_API_KEY && !!env.PHOTO_LIMITER && !!env.PHOTO_HOURLY;
     if (request.method === 'GET') return reply({enabled});
@@ -122,5 +123,60 @@ export class PhotoHourlyLimiter {
       if (times.length) await this.state.storage.setAlarm(times[times.length-1]+3600000);
       else await this.state.storage.deleteAll();
     });
+  }
+}
+
+async function handleFeedback(request,env) {
+  if (!env.FEEDBACK_INBOX) return reply({error:'Feedback is temporarily unavailable.'},503);
+  if (request.method === 'GET') {
+    if (!env.FEEDBACK_ADMIN_TOKEN || request.headers.get('Authorization') !== `Bearer ${env.FEEDBACK_ADMIN_TOKEN}`) return reply({error:'Not authorized'},403);
+    const inbox=env.FEEDBACK_INBOX.get(env.FEEDBACK_INBOX.idFromName('community'));
+    return inbox.fetch('https://inbox/export');
+  }
+  if (request.method !== 'POST') return reply({error:'Method not allowed'},405);
+  if (request.headers.get('Origin') !== new URL(request.url).origin) return reply({error:'Please submit from MyHockeyFit.'},403);
+  if (!request.headers.get('Content-Type')?.startsWith('application/json')) return reply({error:'Invalid request.'},415);
+  let body;
+  try { body=await readLimited(request,8000); } catch {return reply({error:'Please keep your feedback under 1,500 characters.'},400);}
+  if (!body || typeof body!=='object' || !Number.isInteger(body.rating) || body.rating<1 || body.rating>5 || !/^[a-f0-9-]{36}$/i.test(body.id||'') || typeof body.name!=='string' || body.name.length>60 || typeof body.comment!=='string' || body.comment.length>1500 || !['','stick','shin','photo','general'].includes(body.feature) || !['','U7','U9','U11','U12','U13','U15','U18','Adult','Not sure'].includes(body.ageGroup) || body.website) return reply({error:'Check your rating and feedback, then try again.'},400);
+  try {
+    const ip=request.headers.get('CF-Connecting-IP');if(!ip)throw Error('address missing');
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ip));
+    const key=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+    const inbox=env.FEEDBACK_INBOX.get(env.FEEDBACK_INBOX.idFromName('community'));
+    return await inbox.fetch('https://inbox/submit',{method:'POST',body:JSON.stringify({id:body.id,rating:body.rating,name:body.name.trim(),comment:body.comment.trim(),feature:body.feature,ageGroup:body.ageGroup,key})});
+  } catch {return reply({error:'Could not save feedback. Please try again later.'},503);}
+}
+export class FeedbackInbox {
+  constructor(state) {
+    this.state=state;this.sql=state.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, created_at TEXT, rating INTEGER, name TEXT, comment TEXT, feature TEXT, age_group TEXT)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS submit_limits (key TEXT PRIMARY KEY, times TEXT)');
+  }
+  async fetch(request) {
+    if (request.method==='GET' && new URL(request.url).pathname==='/export') return reply({feedback:this.sql.exec('SELECT * FROM feedback ORDER BY created_at DESC').toArray()});
+    if (request.method!=='POST')return reply({error:'Method not allowed'},405);
+    const body=await request.json();
+    return this.state.blockConcurrencyWhile(async()=>{
+      if(this.sql.exec('SELECT id FROM feedback WHERE id = ?',body.id).toArray().length)return reply({ok:true});
+      const now=Date.now();const row=this.sql.exec('SELECT times FROM submit_limits WHERE key = ?',body.key).toArray()[0];
+      const times=(row?JSON.parse(row.times):[]).filter(t=>t>now-3600000);
+      if(times.length>=5)return reply({error:'You have sent 5 feedback messages this hour. Please wait before sending more.'},429);
+      if(this.sql.exec('SELECT COUNT(*) AS total FROM feedback').toArray()[0].total>=10000)return reply({error:'Feedback is temporarily full. Please try again later.'},503);
+      times.push(now);
+      this.state.storage.transactionSync(()=>{
+        this.sql.exec('INSERT INTO feedback VALUES (?,?,?,?,?,?,?)',body.id,new Date(now).toISOString(),body.rating,body.name,body.comment,body.feature,body.ageGroup);
+        this.sql.exec('INSERT OR REPLACE INTO submit_limits VALUES (?,?)',body.key,JSON.stringify(times));
+      });
+      await this.state.storage.setAlarm(now+3600000);
+      return reply({ok:true});
+    });
+  }
+  async alarm() {
+    const now=Date.now();
+    for(const row of this.sql.exec('SELECT key,times FROM submit_limits').toArray()){
+      if(JSON.parse(row.times).every(t=>t<=now-3600000))this.sql.exec('DELETE FROM submit_limits WHERE key = ?',row.key);
+    }
+    if(this.sql.exec('SELECT key FROM submit_limits LIMIT 1').toArray().length)await this.state.storage.setAlarm(now+3600000);
   }
 }
