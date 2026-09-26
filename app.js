@@ -331,7 +331,7 @@ function assessGuidedStickFit(stickTopY,canvasHeight,noseY,chinY) {
   if (![stickTopY,canvasHeight,noseY,chinY].every(Number.isFinite) || canvasHeight<=0 || noseY<0 || chinY<=noseY || chinY>canvasHeight || stickTopY<0 || stickTopY>canvasHeight) return {status:'unclear',title:'Check the photo markers',detail:'Mark the actual nose, chin and stick top. Retake if the face or complete stick is not visible.'};
   if (stickTopY < noseY) return {status:'long',title:'The stick may be too long',detail:'The marked stick top is above the marked nose. Confirm the length in person before cutting.'};
   if (stickTopY > chinY) return {status:'short',title:'The stick may be too short',detail:'The marked stick top is below the marked chin. Compare a longer stick in store.'};
-  return {status:'good',title:'Your stick length looks right',detail:'Your marks put the stick top between your chin and nose. This assumes you have skates on and the stick is upright with its blade on the floor.'};
+  return {status:'good',title:'Your stick length looks right',detail:'Your marks put the stick top between your chin and nose. This assumes you have skates on and the stick is upright with its blade toe (front tip) on the floor.'};
 }
 
 function stopFitCamera() {
