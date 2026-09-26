@@ -77,3 +77,6 @@
 .ai-photo-panel button{background:var(--cyan);color:var(--navy);padding:10px 20px;border:0;border-radius:8px;font-weight:700}
 .ai-photo-panel button:disabled{opacity:.5}
 .ai-photo-panel p{margin:5px 0 0;font-size:11px}
+.photo-pose-demo{grid-column:1/-1;margin:8px 0 4px;position:relative;z-index:1;text-align:center}
+.photo-pose-demo img{display:block;width:min(100%,320px);height:auto;margin:auto;border-radius:14px}
+.photo-pose-demo figcaption{font-size:10px;color:#c4d6de;margin-top:8px}
