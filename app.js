@@ -6,6 +6,7 @@ const equipmentChoices = $('#equipmentChoices');
 const shinGuardsComing = $('#shinGuardsComing');
 
 function showEquipmentHome() {
+  leaveStandalonePhotoFit();
   window.ShinFit?.clearPhotos();
   equipmentHome.hidden = false;
   equipmentChoices.hidden = false;
@@ -16,6 +17,7 @@ function showEquipmentHome() {
 }
 
 function showStickFinder() {
+  leaveStandalonePhotoFit();
   window.ShinFit?.clearPhotos();
   equipmentHome.hidden = true;
   $$('.app-view').forEach(element => { element.hidden = false; });
@@ -336,25 +338,32 @@ function setCapturedMode(captured) {
   $('#stickTopHint').textContent = '1 of 3: Tap the tip of the nose';
 }
 
+let cameraRequest = 0;
 async function openFitCamera() {
+  stopFitCamera();
+  const request = ++cameraRequest;
   const modal = $('#cameraModal'), result = $('#photoFitResult');
   result.hidden = true; modal.hidden = false; document.body.classList.add('camera-open'); setCapturedMode(false);
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
-    photoFitState.stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1080},height:{ideal:1920}}});
+    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1080},height:{ideal:1920}}});
+    if (request !== cameraRequest) { stream.getTracks().forEach(track => track.stop()); return; }
+    photoFitState.stream = stream;
     const video = $('#fitCameraVideo'); video.srcObject = photoFitState.stream; await video.play();
   } catch (error) {
+    if (request !== cameraRequest) return;
     stopFitCamera(); modal.hidden = true; document.body.classList.remove('camera-open');
     result.hidden = false; result.className = 'photo-fit-result warning';
     result.innerHTML = '<span class="photo-verdict">Camera unavailable</span><h4>Allow camera access</h4><p>Photo Fit needs camera permission and an HTTPS connection. On iPhone, open Safari Settings for this site and allow Camera, then try again.</p>';
   }
 }
 
-function closeFitCamera() { stopFitCamera(); $('#cameraModal').hidden = true; document.body.classList.remove('camera-open'); const canvas=$('#fitCameraCanvas'); canvas.width=0; canvas.height=0; setCapturedMode(false); }
+function closeFitCamera() { cameraRequest++; stopFitCamera(); $('#cameraModal').hidden = true; document.body.classList.remove('camera-open'); const canvas=$('#fitCameraCanvas'); canvas.width=0; canvas.height=0; setCapturedMode(false); }
 function resetPhotoFit() { closeFitCamera(); $('#photoFitResult').hidden = true; const canvas=$('#fitCameraCanvas'); canvas.width=0; canvas.height=0; }
 
 $('#openFitCamera').addEventListener('click',openFitCamera);
 $('#closeFitCamera').addEventListener('click',closeFitCamera);
+window.addEventListener('pagehide', resetPhotoFit);
 $('#captureFitPhoto').addEventListener('click', () => {
   const video = $('#fitCameraVideo'), canvas = $('#fitCameraCanvas');
   if (!video.videoWidth || !video.videoHeight) return;
@@ -386,7 +395,7 @@ $('#fitCameraCanvas').addEventListener('click', event => {
 $('#finishPhotoFit').addEventListener('click', () => {
   const canvas=$('#fitCameraCanvas'), fit=assessGuidedStickFit(photoFitState.stickTop?.y,canvas.height,photoFitState.nose?.y,photoFitState.chin?.y), result=$('#photoFitResult');
   closeFitCamera(); result.hidden=false; result.className=`photo-fit-result ${fit.status==='good'?'good':'adjust'}`;
-  result.innerHTML=`<span class="photo-verdict">${fit.status==='good'?'Good photo fit':'Adjustment recommended'}</span><h4>${fit.title}</h4><p>${fit.detail}</p><p class="flex-limit"><b>Photo scope:</b> this checks standing length only. Confirm the recommended ${state.fit ? state.fit.flex : ''} flex by loading the exact stick before buying or cutting.</p>`;
+  result.innerHTML=`<span class="photo-verdict">${fit.status==='good'?'Good photo fit':'Adjustment recommended'}</span><h4>${fit.title}</h4><p>${fit.detail}</p><p class="flex-limit"><b>Photo scope:</b> standing length only. Flex and blade lie need a separate check with a coach or store fitter.</p>`;
   result.scrollIntoView({behavior:'smooth',block:'nearest'});
   photoFitState.captured=false; photoFitState.stickTop=null;
 });
@@ -406,8 +415,31 @@ $('#reviewsOnly').addEventListener('change', e => {
   renderProducts(state.sort);
 });
 $('#showMoreButton').addEventListener('click', () => { state.visibleCount = Math.min(15,state.visibleCount+5); renderProducts(state.sort); });
-$('#photoButton').addEventListener('click', () => { const toast=$('#toast'); toast.textContent='Complete your profile, then use the Photo Fit beta below your results.'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2600); $('#photoFitIntro').scrollIntoView({behavior:'smooth'}); });
-$('#startPhotoFit').addEventListener('click', () => { showStep(1); $('.fit-shell').scrollIntoView({behavior:'smooth',block:'start'}); });
+function leaveStandalonePhotoFit() {
+  resetPhotoFit();
+  $('#photoFitResultsSlot').append($('#photoFitTool'));
+  $('#standalonePhotoFit').hidden = true;
+  if (location.hash === '#photo-fit') history.replaceState(null, '', location.pathname + location.search);
+}
+function showStandalonePhotoFit() {
+  resetPhotoFit();
+  window.ShinFit?.clearPhotos();
+  equipmentHome.hidden = true;
+  $$('.app-view').forEach(element => { element.hidden = true; });
+  $('#standalonePhotoFit').hidden = false;
+  $('#standalonePhotoSlot').append($('#photoFitTool'));
+  history.replaceState(null, '', '#photo-fit');
+  window.scrollTo({top:0, behavior:'smooth'});
+  $('#standalonePhotoTitle').focus({preventScroll:true});
+}
+$('#homePhotoFit').addEventListener('click', showStandalonePhotoFit);
+$('#photoButton').addEventListener('click', showStandalonePhotoFit);
+$('#startPhotoFit').addEventListener('click', showStandalonePhotoFit);
+$('#photoBackHome').addEventListener('click', showEquipmentHome);
+window.addEventListener('hashchange', () => {
+  if (location.hash === '#photo-fit') showStandalonePhotoFit();
+  else if (!$('#standalonePhotoFit').hidden) showEquipmentHome();
+});
 $('#shareButton').addEventListener('click', async () => {
   const shareData = { title:'HockeyFit', text:'Find a better starting point for hockey stick length and flex with this free community tool.', url:window.location.href };
   try {
@@ -418,3 +450,4 @@ $('#shareButton').addEventListener('click', async () => {
 
 window.HockeyFit = { calculateFit, rankProducts, productFamilies, assessGuidedStickFit };
 showStep(1);
+if (location.hash === '#photo-fit') showStandalonePhotoFit();

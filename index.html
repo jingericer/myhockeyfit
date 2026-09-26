@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923-reviews1">
+  <link rel="stylesheet" href="styles.css?v=20260926-photo1">
   <link rel="stylesheet" href="shin-fit.css?v=20260923-catalog4">
 </head>
 <body>
@@ -44,6 +44,11 @@
           <span class="equipment-arrow" aria-hidden="true">→</span>
         </button>
       </div>
+      <button class="equipment-row" type="button" id="homePhotoFit">
+        <span class="equipment-icon" aria-hidden="true"><svg viewBox="0 0 96 96"><path d="M12 28h18l7-10h22l7 10h18v52H12Z"/><circle cx="48" cy="53" r="17"/><path d="M72 38h4"/></svg></span>
+        <span class="equipment-copy"><b>Stick Photo Fit</b><small>Already have a stick? Check its length.</small></span>
+        <span class="equipment-arrow" aria-hidden="true">→</span>
+      </button>
       <div class="equipment-coming">
         <svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 12Q64 18 71 10L74 43Q75 51 84 58Q91 65 85 70H15Q6 68 10 61Q12 56 26 51L38 44Q45 34 43 16Z"/><path d="M52 18q5 20-6 32L28 59M43 29l13 3M41 36l13 3M37 43l13 3M31 49l12 4M13 63h72M23 71v8m17-8v8m27-8v8m13-8v8M14 79h72q4 0 4-4M12 85h72q8 0 8-9"/></svg>
         <span><b>More gear is coming</b><small>Skates, gloves, helmets and shoulder pads</small></span>
@@ -62,6 +67,14 @@
     <p class="equipment-community">Built for young players, families and hockey communities.</p>
   </section>
 
+  <section id="standalonePhotoFit" class="standalone-photo" aria-labelledby="standalonePhotoTitle" hidden>
+    <button type="button" class="equipment-back" id="photoBackHome">← Equipment</button>
+    <p class="section-kicker">CHECK YOUR OWN STICK</p>
+    <h1 id="standalonePhotoTitle" tabindex="-1">Stick Photo Fit</h1>
+    <p>No player profile needed. Check standing length with your skates on.</p>
+    <div id="standalonePhotoSlot"></div>
+  </section>
+
   <header class="topbar app-view" hidden>
     <a class="brand" href="#top" aria-label="HockeyFit home">
       <span class="brand-mark" aria-hidden="true"><span></span></span>
@@ -72,7 +85,7 @@
       Photo fit
       <span>Beta</span>
     </button>
-    <span class="sr-only" id="photoHint">Photo Fit beta is available after completing the stick profile.</span>
+    <span class="sr-only" id="photoHint">Check your current stick without completing a player profile.</span>
   </header>
 
   <main id="top" class="app-view" hidden>
@@ -276,17 +289,17 @@
           <button type="button" class="show-more-button" id="showMoreButton">Show 5 more <span>↓</span></button>
           <p class="price-note" id="budgetResultsNote" role="status"></p>
           <div class="price-note"><label class="review-filter"><input id="reviewsOnly" type="checkbox"> Only reviews above 4/5</label><p>Recommendations use your answers. Reviews come from the linked stores.</p><details><summary>About ratings and prices</summary><p>Review snapshots collected September 23, 2026. Some pages combine sizes; see each rating’s label. Reviews are not all confirmed purchases and may include promotions. Few reviews mean limited evidence. Missing ratings stay blank.</p><p>Rating sort and filter use the first displayed source: a size specific page before a combined or unclear scope, then source name. Other collected sources remain visible. Sources are never averaged. Rating sort applies to your shortlist; unrated options appear last. The above 4/5 filter excludes unrated options.</p><p>Prices are reference CAD. Confirm the exact size, flex, curve, price and stock in store.</p></details></div>
-          <section class="store-fit-card photo-fit-tool" id="photoFitTool" aria-labelledby="storeFitTitle">
+          <div id="photoFitResultsSlot"><section class="store-fit-card photo-fit-tool" id="photoFitTool" aria-labelledby="storeFitTitle">
             <div class="store-fit-intro">
               <span class="soon-badge beta-badge">Beta</span>
               <p class="section-kicker">One photo fit check</p>
               <h3 id="storeFitTitle">Stand in the guide. Take one photo.</h3>
-              <p>Open the camera, line up with the shape on screen, keep the stick upright, then tap the top of the stick once.</p>
+              <p>Take a standing photo, then mark your nose, chin and stick top.</p>
             </div>
             <ol class="pose-list">
               <li><span>1</span><div><b>Fit the body shape</b><small>Skates on, full body visible, phone held upright.</small></div></li>
               <li><span>2</span><div><b>Hold the stick upright</b><small>Blade pivot point on the floor beside the skates.</small></div></li>
-              <li><span>3</span><div><b>Tap the stick top</b><small>Get “too short”, “good fit” or “too long” immediately.</small></div></li>
+              <li><span>3</span><div><b>Mark three points</b><small>Tap the nose, chin and stick top to check length.</small></div></li>
             </ol>
 
             <div class="camera-start-card">
@@ -295,7 +308,7 @@
             </div>
             <div class="photo-fit-result" id="photoFitResult" role="status" hidden></div>
             <p class="photo-privacy"><b>Private by design:</b> the photo stays in temporary browser memory. It is never uploaded or permanently saved.</p>
-          </section>
+          </section></div>
           <div class="source-box">
             <details>
               <summary>How HockeyFit makes this recommendation</summary>
@@ -318,8 +331,8 @@
       <div>
         <p class="section-kicker">Available in beta</p>
         <h2>Photo Fit</h2>
-        <p>Complete the stick profile, open the guided camera and take one standing photo. HockeyFit checks whether the stick reaches the chin to nose fitting zone without sending the photo to a server.</p>
-        <button type="button" id="startPhotoFit">Start with my profile</button>
+        <p>Already have a stick? Take a photo to check its standing length. No player profile needed.</p>
+        <button type="button" id="startPhotoFit">Check my stick</button>
       </div>
       <div class="phone-mock" aria-hidden="true">
         <div class="scan-line"></div>
@@ -350,7 +363,7 @@
 
   <footer class="app-view" hidden><a class="brand" href="#top"><span class="brand-mark"><span></span></span><span>HOCKEY<span>FIT</span></span></a><p>A free community project created by Eric J.</p><small>Independent guide. Not affiliated with Bauer, CCM, or any hockey association.</small></footer>
 
-  <div class="toast" id="toast" role="status">Complete your profile to use Photo Fit.</div>
+  <div class="toast" id="toast" role="status">Check your current stick with Photo Fit.</div>
   <div class="camera-modal" id="cameraModal" role="dialog" aria-modal="true" aria-labelledby="cameraTitle" hidden>
     <div class="camera-topbar"><button type="button" id="closeFitCamera" aria-label="Close camera">×</button><div><b id="cameraTitle">Photo Fit</b><small id="cameraInstruction">Fit the player inside the guide</small></div><span>Private</span></div>
     <div class="camera-stage">
@@ -378,7 +391,7 @@
     </div>
   </div>
   <script src="review-data.js?v=20260923-reviews1"></script>
-  <script src="app.js?v=20260923-reviews1"></script>
+  <script src="app.js?v=20260926-photo1"></script>
   <script src="shin-data.js?v=20260923-catalog4"></script>
   <script src="shin-fit.js?v=20260923-catalog4"></script>
 </body>
