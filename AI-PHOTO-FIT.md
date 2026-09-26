@@ -6,7 +6,7 @@ After deployment, add a runtime Secret named OPENAI_API_KEY to the existing myho
 
 The optional AI button requires explicit photo-sharing consent. Capture is resized to at most 1600 pixels and encoded as JPEG. The clean captured image is kept separately from manual drawn markers, then cleared on close, retake, navigation or result. A cancelled browser request cannot guarantee upstream processing has stopped.
 
-The server uses OpenAI Responses with gpt-4.1-mini, strict JSON output and store:false. It does not write images or responses to a database, object store or application log. OpenAI retention policies still apply; store:false is not a promise of zero provider retention. Disclosure is shown before sending. Manual checks remain local.
+The server uses OpenAI Responses with gpt-4.1, strict JSON output and store:false. It does not write images or responses to a database, object store or application log. OpenAI retention policies still apply; store:false is not a promise of zero provider retention. Disclosure is shown before sending. Manual checks remain local.
 
 Only upright standing length is estimated. The blade toe (front tip) must touch the floor with the heel raised; heel contact or a flat blade requires a retake. Unclear views, missing skates, poor perspective, tilted sticks and hidden landmarks should produce a retake result. AI cannot establish flex, blade lie, safety, or an exact amount to cut. This is an unvalidated beta; real photo evaluation against a coach or fitter is still needed before relying on its accuracy.
 
@@ -18,5 +18,5 @@ Sources checked September 26, 2026:
 * https://developers.cloudflare.com/workers/static-assets/binding/
 * https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
 * https://developers.openai.com/api/docs/guides/images-vision
-* https://developers.openai.com/api/docs/models/gpt-4.1-mini
+* https://developers.openai.com/api/docs/models/gpt-4.1
 * https://developers.openai.com/api/docs/guides/your-data

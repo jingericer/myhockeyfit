@@ -25,7 +25,7 @@ test('structured assessment, no response storage, no raw upstream errors',async(
  try{
   globalThis.fetch=async(url,options)=>{
    assert.equal(url,'https://api.openai.com/v1/responses');
-   const body=JSON.parse(options.body);assert.equal(body.store,false);assert.equal(body.model,'gpt-4.1-mini');assert.equal(body.input[0].content[1].image_url,photo.image);
+   const body=JSON.parse(options.body);assert.equal(body.store,false);assert.equal(body.model,'gpt-4.1');assert.equal(body.input[0].content[1].image_url,photo.image);
    return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'retake',reason:'Stick is hidden.',next_step:'Show the full stick.',checks})}]}]});
   };
   const result=await worker.fetch(request(),env);assert.equal(result.headers.get('Cache-Control'),'no-store');const assessment=await result.json();assert.equal(assessment.status,'retake');assert.deepEqual(assessment.checks,checks);assert.equal(assessment.checks[5].status,'unclear');
