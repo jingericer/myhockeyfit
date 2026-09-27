@@ -101,3 +101,9 @@
 /* The home heading follows the logo without a forced empty hero area. */
 .equipment-home-hero{min-height:0;justify-content:flex-start;gap:26px;padding-top:24px;padding-bottom:30px}
 @media(max-width:520px){.equipment-home-hero{min-height:0;gap:24px;padding:22px 24px 28px}}
+
+/* Keep each equipment choice readable as a simple icon and text row. */
+.equipment-home-body .equipment-row{grid-template-columns:76px minmax(0,1fr);text-decoration:none}
+.equipment-home-body .equipment-row .equipment-arrow{display:none}
+.equipment-home-body .equipment-row .equipment-copy,.equipment-home-body .equipment-row .equipment-copy *{text-decoration:none}
+@media(max-width:520px){.equipment-home-body .equipment-row{grid-template-columns:64px minmax(0,1fr)}}
