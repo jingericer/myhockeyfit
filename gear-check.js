@@ -54,6 +54,12 @@ const nextButton=document.getElementById('nextButton');
 const backButton=document.getElementById('backButton');
 const progress=document.getElementById('progress');
 const actions=document.getElementById('actions');
+const trackedInteractions=new Set();
+function trackInteraction(event){
+  if(trackedInteractions.has(event))return;
+  trackedInteractions.add(event);
+  fetch('/api/usage-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{});
+}
 
 function element(tag,klass,content){const node=document.createElement(tag);if(klass)node.className=klass;if(content!==undefined)node.textContent=content;return node;}
 function addChoice(container,value,label,hint,selected,onSelect){
@@ -75,7 +81,7 @@ function render(){
   const wrapper=element('div','gc-options');stepNode.append(wrapper);
   for(const [value,label,hint] of options){
     addChoice(wrapper,value,label,hint,(step===0?gear:answers[step-1])===value,chosen=>{
-      if(step===0){gear=chosen;answers=[];}else{answers[step-1]=chosen;answers.length=step;}
+      if(step===0){gear=chosen;answers=[];trackInteraction(`gear_${chosen}_start`);}else{answers[step-1]=chosen;answers.length=step;}
       render();
     });
   }
@@ -92,6 +98,7 @@ function verdictFor(kind,selected){
 function showResult(){
   const item=equipment[gear],verdict=verdictFor(gear,answers);
   if(!verdict)return;
+  trackInteraction(`gear_${gear}_result`);
   stepNode.replaceChildren();actions.hidden=true;resultNode.hidden=false;
   progress.replaceChildren(...Array.from({length:item.questions.length+1},()=>element('span','done')));
   resultNode.append(element('p','gc-step-label',item.name.toUpperCase()+' · YOUR CHECK'));

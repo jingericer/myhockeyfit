@@ -9,6 +9,7 @@
       "/api/*",
       "/",
       "/index.html",
+      "/gear-check.html",
       "/volunteer.html",
       "/team.html"
     ]

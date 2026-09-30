@@ -19,3 +19,17 @@ test('page visits record anonymous daily IDs, and usage reports require admin pa
   const allowed=await worker.fetch(new Request('https://myhockeyfit.com/api/usage-stats',{headers:{Authorization:'Bearer secret-for-test'}}),env);
   assert.equal(allowed.status,200);assert.equal((await allowed.json()).summary.pageViews,1);
 });
+test('tool events are same-origin, fixed-name and contain no player answers',async()=>{
+  const recorded=[];
+  const env={FEEDBACK_ADMIN_TOKEN:'secret-for-test',USAGE_STATS:{idFromName:name=>name,get:()=>({fetch:async(url,options)=>{
+    recorded.push(JSON.parse(options.body));return Response.json({ok:true});
+  }})}};
+  const send=(event,origin='https://myhockeyfit.com')=>worker.fetch(new Request('https://myhockeyfit.com/api/usage-event',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.4'},body:JSON.stringify({event})}),env);
+  assert.equal((await send('gear_gloves_result')).status,200);
+  assert.equal((await send('gear_gloves_result','https://other.example')).status,403);
+  assert.equal((await send('player_age_12')).status,400);
+  assert.equal(recorded.length,1);
+  assert.equal(recorded[0].kind,'gear_gloves_result');
+  assert.equal(recorded[0].page,'Interaction');
+  assert(!JSON.stringify(recorded).includes('192.0.2.4'));
+});

@@ -28,7 +28,8 @@ Only for a suitable photo, use the footwear stated in the user message. With ice
 Never infer flex, stiffness, player identity, age, skill, exact centimetres, cutting amounts, blade lie, or protective safety. Never recommend cutting based on this photo alone.
 Return concise English: reason at most 30 words describing visible evidence; next_step at most 25 words giving a practical next action. For starting_range advise confirming comfort and control with a coach or fitter. For short or long advise a physical fitting check before changes. No markdown or decorative hyphens.`;
 const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
-const trackedPages={'/':'Home','/index.html':'Home','/volunteer.html':'Volunteer testing','/team.html':'Project team'};
+const trackedPages={'/':'Home','/index.html':'Home','/gear-check.html':'Gear check','/volunteer.html':'Volunteer testing','/team.html':'Project team'};
+const usageEvents=['stick_start','stick_result','stick_model','shin_start','shin_result','shin_model','gear_stick_start','gear_stick_result','gear_skates_start','gear_skates_result','gear_gloves_start','gear_gloves_result','gear_shin_start','gear_shin_result','photo_start','photo_manual_result'];
 async function recordUsage(request,env,ctx,page,kind){
   try{
     if(!env.USAGE_STATS||!env.FEEDBACK_ADMIN_TOKEN)return;
@@ -68,6 +69,15 @@ export default {
       const denied=await verifyAdmin(request,env);if(denied)return denied;
       if(!env.USAGE_STATS)return reply({error:'Usage statistics are not configured yet.'},503);
       return env.USAGE_STATS.get(env.USAGE_STATS.idFromName('community')).fetch('https://stats/report');
+    }
+    if(url.pathname==='/api/usage-event'){
+      if(request.method!=='POST')return reply({error:'Method not allowed'},405);
+      if(request.headers.get('Origin')!==url.origin)return reply({error:'Open MyHockeyFit to record an event.'},403);
+      if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply({error:'Invalid request.'},415);
+      let body;try{body=await readLimited(request,128);}catch{return reply({error:'Invalid event.'},400);}
+      if(!body||typeof body!=='object'||!usageEvents.includes(body.event))return reply({error:'Invalid event.'},400);
+      await recordUsage(request,env,ctx,'Interaction',body.event);
+      return reply({ok:true});
     }
     if (url.pathname === '/api/feedback') return handleFeedback(request,env);
     if (url.pathname === '/api/team-apply' || url.pathname === '/api/team-applications') return handleTeam(request,env);
@@ -161,7 +171,7 @@ export class UsageStats {
     if(route==='/report' && request.method==='GET'){
       const since=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
       const stats=this.sql.exec('SELECT day, visitor, page, kind, count FROM usage WHERE day >= ? ORDER BY day DESC',since).toArray();
-      const daily=new Map(),pages=new Map(),visitors=new Map(),all=new Set();let pageViews=0,aiRequests=0,aiResults=0;
+      const daily=new Map(),pages=new Map(),visitors=new Map(),events=new Map(),all=new Set(),engaged=new Set(),completed=new Set();let pageViews=0,aiRequests=0,aiResults=0;
       for(const row of stats){
         const bucket=daily.get(row.day)||{day:row.day,views:0,visitors:new Set(),aiRequests:0,aiResults:0};
         const who=visitors.get(row.day+':'+row.visitor)||{day:row.day,id:row.visitor,views:0,aiRequests:0,aiResults:0,pages:new Set()};
@@ -169,16 +179,31 @@ export class UsageStats {
           pageViews+=row.count;bucket.views+=row.count;bucket.visitors.add(row.visitor);all.add(row.day+':'+row.visitor);
           pages.set(row.page,(pages.get(row.page)||0)+row.count);who.views+=row.count;who.pages.add(row.page);
         }else if(row.kind==='ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;}
-        else if(row.kind==='ai_result'){aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;}
+        else if(row.kind==='ai_result'){
+          aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;completed.add(row.day+':'+row.visitor);
+          const photo=events.get('photo_completed')||{event:'photo_completed',count:0,visitors:new Set()};
+          photo.count+=row.count;photo.visitors.add(row.day+':'+row.visitor);events.set('photo_completed',photo);
+        }
+        else if(usageEvents.includes(row.kind)){
+          const entry=events.get(row.kind)||{event:row.kind,count:0,visitors:new Set()};
+          entry.count+=row.count;entry.visitors.add(row.day+':'+row.visitor);events.set(row.kind,entry);
+          engaged.add(row.day+':'+row.visitor);
+          if(row.kind.endsWith('_result'))completed.add(row.day+':'+row.visitor);
+          if(row.kind==='photo_manual_result'){
+            const photo=events.get('photo_completed')||{event:'photo_completed',count:0,visitors:new Set()};
+            photo.count+=row.count;photo.visitors.add(row.day+':'+row.visitor);events.set('photo_completed',photo);
+          }
+        }
         daily.set(row.day,bucket);visitors.set(row.day+':'+row.visitor,who);
       }
-      return reply({since,summary:{pageViews,visitorDays:all.size,aiRequests,aiResults},daily:[...daily.values()].map(d=>({...d,visitors:d.visitors.size})),pages:[...pages].map(([page,views])=>({page,views})).sort((a,b)=>b.views-a.views),visitors:[...visitors.values()].sort((a,b)=>b.day.localeCompare(a.day)||b.views-a.views).slice(0,200).map(v=>({...v,pages:[...v.pages]}))});
+      return reply({since,summary:{pageViews,visitorDays:all.size,engagedVisitorDays:engaged.size,completedVisitorDays:completed.size,aiRequests,aiResults},daily:[...daily.values()].map(d=>({...d,visitors:d.visitors.size})),pages:[...pages].map(([page,views])=>({page,views})).sort((a,b)=>b.views-a.views),events:[...events.values()].map(e=>({event:e.event,count:e.count,visitors:e.visitors.size})),visitors:[...visitors.values()].sort((a,b)=>b.day.localeCompare(a.day)||b.views-a.views).slice(0,200).map(v=>({...v,pages:[...v.pages]}))});
     }
     if(route!=='/record'||request.method!=='POST')return reply({error:'Not found'},404);
     let entry;try{entry=await request.json();}catch{return reply({error:'Invalid record'},400);}
-    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!['Home','Volunteer testing','Project team','Photo Fit'].includes(entry.page)||!['page','ai_request','ai_result'].includes(entry.kind))return reply({error:'Invalid record'},400);
+    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!(entry.page==='Interaction'&&usageEvents.includes(entry.kind)||['Home','Gear check','Volunteer testing','Project team','Photo Fit'].includes(entry.page)&&['page','ai_request','ai_result'].includes(entry.kind)))return reply({error:'Invalid record'},400);
     return this.state.blockConcurrencyWhile(async()=>{
-      this.sql.exec('INSERT INTO usage (day, visitor, page, kind, count) VALUES (?,?,?,?,1) ON CONFLICT(day,visitor,page,kind) DO UPDATE SET count=count+1',entry.day,entry.visitor,entry.page,entry.kind);
+      const updateCount=entry.page==='Interaction'?'count=MIN(count+1,20)':'count=count+1';
+      this.sql.exec(`INSERT INTO usage (day, visitor, page, kind, count) VALUES (?,?,?,?,1) ON CONFLICT(day,visitor,page,kind) DO UPDATE SET ${updateCount}`,entry.day,entry.visitor,entry.page,entry.kind);
       const since=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
       this.sql.exec('DELETE FROM usage WHERE day < ?',since);
       return reply({ok:true});

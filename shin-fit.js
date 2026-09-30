@@ -175,6 +175,7 @@
     }
   });
   root.addEventListener('click',e=>{
+    if(e.target.closest('.stick-buy a[href]'))window.myHockeyFitTrack?.('shin_model');
     const button=e.target.closest('button');if(!button)return;
     if(button.dataset.openCamera){openCamera(button.dataset.openCamera);return;}
     if(button.dataset.delete){const key=button.dataset.delete;if(photos[key])URL.revokeObjectURL(photos[key]);delete photos[key];render(false);return;}
@@ -191,7 +192,7 @@
     if(error){root.querySelector('#sg-error').textContent=error;return;}
     if(page===4){const v=verdict(data.checks);root.querySelector('#sg-verdict').innerHTML='<h3>'+v.title+'</h3><p>'+v.detail+'</p>';root.querySelector('#sg-verdict').scrollIntoView({behavior:'smooth',block:'center'});return;}
     if(page===2){data.count=5;data.checks={};}
-    page++;render();root.scrollIntoView({behavior:'smooth',block:'start'});
+    page++;if(page===3)window.myHockeyFitTrack?.('shin_result');render();root.scrollIntoView({behavior:'smooth',block:'start'});
   });
   window.addEventListener('pagehide',clearPhotos);
   window.ShinFit={sizesFor,shortlist,verdict,clearPhotos};

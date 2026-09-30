@@ -1,5 +1,12 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const trackedInteractions=new Set();
+function trackInteraction(event){
+  if(trackedInteractions.has(event))return;
+  trackedInteractions.add(event);
+  fetch('/api/usage-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{});
+}
+window.myHockeyFitTrack=trackInteraction;
 
 const equipmentHome = $('#equipmentHome');
 const equipmentChoices = $('#equipmentChoices');
@@ -17,6 +24,7 @@ function showEquipmentHome() {
 }
 
 function showStickFinder() {
+  trackInteraction('stick_start');
   leaveStandalonePhotoFit();
   window.ShinFit?.clearPhotos();
   equipmentHome.hidden = true;
@@ -26,6 +34,7 @@ function showStickFinder() {
 
 $('#openStickFinder').addEventListener('click', showStickFinder);
 $('#openShinGuards').addEventListener('click', () => {
+  trackInteraction('shin_start');
   equipmentChoices.hidden = true;
   shinGuardsComing.hidden = false;
   window.scrollTo({top:0, behavior:'smooth'});
@@ -296,6 +305,7 @@ function renderProducts(sort='match') {
   more.innerHTML = `Show ${Math.min(5,Math.max(0,remaining))} more <span>↓</span>${remaining > 0 ? ` <small>${remaining} remaining</small>` : ''}`;
 }
 function buildResults() {
+  trackInteraction('stick_result');
   const p = collectProfile();
   const fit = calculateFit(p);
   state.profile = p; state.fit = fit; state.results = rankProducts(p,fit); state.visibleCount = 5; state.sort = 'match';
@@ -401,6 +411,7 @@ async function showCameraStream(stream, request) {
   alignFitCameraGuide(); return true;
 }
 async function openFitCamera() {
+  trackInteraction('photo_start');
   if (!photoFitState.footwear) {$('#photoFootwearStep').scrollIntoView({behavior:'smooth',block:'center'});return;}
   refreshAIStatus();
   stopFitCamera();
@@ -547,6 +558,7 @@ $('#fitCameraCanvas').addEventListener('click', event => {
   $('#finishPhotoFit').disabled=!photoFitState.stickTop;
 });
 $('#finishPhotoFit').addEventListener('click', () => {
+  trackInteraction('photo_manual_result');
   const canvas=$('#fitCameraCanvas'), fit=assessGuidedStickFit(photoFitState.stickTop?.y,canvas.height,photoFitState.nose?.y,photoFitState.chin?.y,photoFitState.footwear), result=$('#photoFitResult');
   closeFitCamera(); result.hidden=false; result.className=`photo-fit-result ${fit.status==='good'?'good':'adjust'}`;
   result.innerHTML=`<span class="photo-verdict">${fit.status==='good'?'Good photo fit':'Adjustment recommended'}</span><h4>${fit.title}</h4><p>${fit.detail}</p><p class="flex-limit"><b>Photo scope:</b> standing length only. Flex and blade lie need a separate check with a coach or store fitter.</p>`;
@@ -569,6 +581,7 @@ $('#reviewsOnly').addEventListener('change', e => {
   renderProducts(state.sort);
 });
 $('#showMoreButton').addEventListener('click', () => { state.visibleCount = Math.min(15,state.visibleCount+5); renderProducts(state.sort); });
+$('#stickResults').addEventListener('click', event=>{if(event.target.closest('a[href]'))trackInteraction('stick_model');});
 function leaveStandalonePhotoFit() {
   resetPhotoFit();
   $('#photoFitResultsSlot').append($('#photoFitTool'));
@@ -576,6 +589,7 @@ function leaveStandalonePhotoFit() {
   if (location.hash === '#photo-fit') history.replaceState(null, '', location.pathname + location.search);
 }
 function showStandalonePhotoFit() {
+  trackInteraction('photo_start');
   resetPhotoFit();
   window.ShinFit?.clearPhotos();
   equipmentHome.hidden = true;
