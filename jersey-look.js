@@ -1,6 +1,7 @@
 import {NHL_TEAMS} from './jersey-teams.mjs?v=1';
 const $=selector=>document.querySelector(selector);
 let step=0,team=null,person='',customJersey='',resultUrl='',busy=false,enabled=false,uploadVersion=0;
+let accessCode='';
 const seen=new Set();
 function track(event){if(seen.has(event))return;seen.add(event);fetch('/api/usage-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{});}
 function status(message=''){$('#lookStatus').textContent=message;}
@@ -22,7 +23,7 @@ function updateReference(){
   $('#selectedTeam').textContent=team.name;$('#jerseyPreview').src=customJersey||team[view()];$('#jerseyPreview').alt=customJersey?'Your uploaded jersey':team.name+' home jersey';
   $('#numberPreview').textContent=number();$('.number-tag').hidden=!number();$('#jerseySource').href=team.source;$('#jerseySource').hidden=!!customJersey;$('#removeJersey').hidden=!customJersey;
 }
-function updateButton(){const valid=step===0?!!team:step===1?validNumber():!!person&&$('#aiConsent').checked&&enabled;$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
+function updateButton(){const valid=!!accessCode&&(step===0?!!team:step===1?validNumber():!!person&&$('#aiConsent').checked&&enabled);$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
 function showStep(next,focus=true){step=next;document.querySelectorAll('.step').forEach((element,i)=>element.hidden=i!==step);document.querySelectorAll('.progress>span').forEach((element,i)=>{element.className=i===step?'active':i<step?'done':'';if(i===step)element.setAttribute('aria-current','step');else element.removeAttribute('aria-current');});$('#backButton').hidden=step===0;updateReference();updateButton();status();if(focus)$(`.step[data-step="${step}"] h2`).focus();}
 $('#teamChoices').addEventListener('click',event=>{const choice=event.target.closest('[data-team]');if(!choice)return;team=NHL_TEAMS.find(item=>item.id===choice.dataset.team);customJersey='';$('#customJersey').value='';renderTeams();updateButton();track('jersey_start');});
 $('#teamSearch').addEventListener('input',renderTeams);
@@ -63,7 +64,7 @@ $('#lookForm').addEventListener('submit',async event=>{
   if(step<2){showStep(step+1);return;}
   busy=true;updateButton();status();$('#lookForm').hidden=true;$('.progress').hidden=true;$('#creating').hidden=false;
   try{
-    const response=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({team:team.id,number:number(),view:view(),person,jersey:customJersey||undefined,consent:true}),signal:AbortSignal.timeout(190000)});
+    const response=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode,team:team.id,number:number(),view:view(),person,jersey:customJersey||undefined,consent:true}),signal:AbortSignal.timeout(190000)});
     const data=await readResult(response);clearResult();const blob=await(await fetch(data.image)).blob();resultUrl=URL.createObjectURL(blob);$('#resultImage').src=resultUrl;$('#resultTeam').textContent=team.name+(number()?' · #'+number():'');$('#lookResult').hidden=false;$('#resultHeading').focus();
   }catch(error){$('#lookForm').hidden=false;$('.progress').hidden=false;status(error.name==='TimeoutError'?'The preview took too long. Please wait before trying again.':error.message||'Could not create your look. Please return later.');}
   finally{busy=false;$('#creating').hidden=true;updateButton();}
@@ -72,7 +73,18 @@ function clearResult(){if(resultUrl)URL.revokeObjectURL(resultUrl);resultUrl='';
 $('#downloadLook').addEventListener('click',()=>{if(!resultUrl)return;const link=document.createElement('a');link.href=resultUrl;link.download=`my-jersey-look-${team.id.toLowerCase()}${number()?'-'+number():''}.jpg`;link.click();track('jersey_download');});
 $('#anotherLook').addEventListener('click',()=>{clearResult();$('#lookForm').hidden=false;$('.progress').hidden=false;$('#aiConsent').checked=false;showStep(0);});
 $('#clearLook').addEventListener('click',()=>{clearResult();removePerson();customJersey='';team=null;$('#lookForm').hidden=false;$('.progress').hidden=false;renderTeams();showStep(0);});
-window.addEventListener('pagehide',()=>{person='';customJersey='';clearResult();$('#personPreview').removeAttribute('src');$('#jerseyPreview').removeAttribute('src');});
-window.addEventListener('pageshow',event=>{if(event.persisted){removePerson();customJersey='';$('#lookForm').hidden=false;$('.progress').hidden=false;$('#creating').hidden=true;busy=false;showStep(0,false);}});
+window.addEventListener('pagehide',()=>{accessCode='';$('#accessCode').value='';person='';customJersey='';clearResult();$('#personPreview').removeAttribute('src');$('#jerseyPreview').removeAttribute('src');});
+window.addEventListener('pageshow',event=>{if(event.persisted){accessCode='';$('#lookFlow').hidden=true;$('#accessGate').hidden=false;removePerson();customJersey='';$('#lookForm').hidden=false;$('.progress').hidden=false;$('#creating').hidden=true;busy=false;showStep(0,false);}});
+$('#accessForm').addEventListener('submit',async event=>{
+  event.preventDefault();const button=$('#accessButton');if(button.disabled)return;
+  button.disabled=true;$('#accessStatus').textContent='Checking your code…';
+  try{
+    const candidate=$('#accessCode').value.trim().toUpperCase();
+    const response=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'access',accessCode:candidate}),signal:AbortSignal.timeout(15000)});
+    const data=await response.json();if(!response.ok||data.authorized!==true)throw Error(data.error||'Could not verify this code.');
+    accessCode=candidate;$('#accessCode').value='';$('#accessStatus').textContent='';$('#accessGate').hidden=true;$('#lookFlow').hidden=false;showStep(0);
+  }catch(error){$('#accessStatus').textContent=error.name==='TimeoutError'?'Code verification took too long. Please try again.':error.message||'Could not verify this code.';}
+  finally{button.disabled=false;}
+});
 renderTeams();showStep(0,false);
 fetch('/api/jersey-look',{cache:'no-store'}).then(response=>response.json()).then(data=>{enabled=data.enabled===true;updateButton();if(!enabled)status('AI previews are temporarily unavailable. You can still explore the jerseys.');}).catch(()=>status('Could not check AI availability. Please refresh before creating a look.'));

@@ -1,5 +1,27 @@
 import {NHL_TEAMS} from './jersey-teams.mjs';
 const MAX_LOOK_BYTES=3500000;
+// Only a hash is deployed. Set JERSEY_ACCESS_CODE_HASH to rotate it without a code change.
+const DEFAULT_ACCESS_HASH='59e35910ed4a91b9ca78f0a9ab8a81aa9ab74b7e9913d6377d32ff961ae57614';
+async function validAccess(value,env){
+  if(typeof value!=='string'||value.length>64)return false;
+  const normalized=value.trim().toUpperCase();
+  if(!/^[A-Z0-9]{8,64}$/.test(normalized))return false;
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(normalized));
+  const actual=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  const expected=env.JERSEY_ACCESS_CODE_HASH||DEFAULT_ACCESS_HASH;
+  if(!/^[a-f0-9]{64}$/.test(expected))return false;
+  let difference=0;for(let i=0;i<64;i++)difference|=actual.charCodeAt(i)^expected.charCodeAt(i);
+  return difference===0;
+}
+async function accessAttempt(request,env,reply){
+  try{
+    const ip=request.headers.get('CF-Connecting-IP');
+    if(!ip||!env.ADMIN_LIMITER)return reply({error:'Code verification is temporarily unavailable.'},503);
+    const limit=await env.ADMIN_LIMITER.limit({key:'jersey-access:'+ip});
+    if(!limit.success){const response=reply({error:'Too many code attempts. Wait one minute before trying again.'},429);response.headers.set('Retry-After','60');return response;}
+  }catch{return reply({error:'Code verification is temporarily unavailable.'},503);}
+  return null;
+}
 function jpeg(value){return typeof value==='string'&&value.length>=100&&value.length<=1600000&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(value)&&value.split(',')[1].length%4===0;}
 function photoBlob(value){const bytes=Uint8Array.from(atob(value.split(',')[1]),char=>char.charCodeAt(0));return new Blob([bytes],{type:'image/jpeg'});}
 async function referenceBlob(path,request,env){
@@ -31,13 +53,19 @@ async function reserveSlot(request,env,reply){
 }
 export async function handleJerseyLook(request,env,ctx,{reply,readLimited,recordUsage}){
   const enabled=!!env.OPENAI_API_KEY&&!!env.PHOTO_LIMITER&&!!env.PHOTO_HOURLY;
-  if(request.method==='GET')return reply({enabled});
+  if(request.method==='GET')return reply({enabled,requiresCode:true});
   if(request.method!=='POST')return reply({error:'Method not allowed'},405);
   if(request.headers.get('Origin')!==new URL(request.url).origin)return reply({error:'Open My Jersey Look on this website.'},403);
   if(!enabled)return reply({error:'AI previews are not configured yet. Please return later.'},503);
   if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply({error:'Invalid request.'},415);
   if(Number(request.headers.get('Content-Length'))>MAX_LOOK_BYTES)return reply({error:'Photos are too large. Choose smaller photos.'},413);
   let body;try{body=await readLimited(request,MAX_LOOK_BYTES);}catch(error){return reply({error:error.message==='large'?'Photos are too large. Choose smaller photos.':'Invalid photo request.'},error.message==='large'?413:400);}
+  const authorized=await validAccess(body?.accessCode,env);
+  if(body?.action==='access'||!authorized){
+    const blocked=await accessAttempt(request,env,reply);if(blocked)return blocked;
+    if(!authorized)return reply({error:'Enter a valid referral code to use My Jersey Look.'},403);
+    if(body.action==='access')return reply({authorized:true});
+  }
   if(!body||typeof body!=='object'||body.consent!==true||!jpeg(body.person)||!['front','back'].includes(body.view)||typeof body.number!=='string'||!/^(?:\d{1,2})?$/.test(body.number)||body.jersey!==undefined&&!jpeg(body.jersey))return reply({error:'Choose a photo, a number from 0 to 99 and confirm photo sharing.'},400);
   const team=NHL_TEAMS.find(item=>item.id===body.team);if(!team)return reply({error:'Choose an NHL team.'},400);
   const denied=await reserveSlot(request,env,reply);if(denied)return denied;

@@ -6,9 +6,11 @@ import {NHL_TEAMS} from '../jersey-teams.mjs';
 globalThis.crypto ??= webcrypto;
 const jpeg='/9j/'+ 'A'.repeat(120);
 const person='data:image/jpeg;base64,'+jpeg;
-const body={team:'OTT',number:'22',view:'front',person,consent:true};
+const testCode='TESTJERSEY123';
+const testHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(testCode))),b=>b.toString(16).padStart(2,'0')).join('');
+const body={accessCode:testCode,team:'OTT',number:'22',view:'front',person,consent:true};
 const request=(changes={},origin='https://myhockeyfit.com')=>new Request('https://myhockeyfit.com/api/jersey-look',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.7'},body:JSON.stringify({...body,...changes})});
-function environment(){return {OPENAI_API_KEY:'test-key',ASSETS:{fetch:async()=>new Response(new Uint8Array([255,216,255,1]),{headers:{'Content-Type':'image/jpeg'}})},PHOTO_LIMITER:{limit:async()=>({success:true})},PHOTO_HOURLY:{idFromName:id=>id,get:()=>({fetch:async()=>Response.json({allowed:true})})}};}
+function environment(){return {JERSEY_ACCESS_CODE_HASH:testHash,ADMIN_LIMITER:{limit:async()=>({success:true})},OPENAI_API_KEY:'test-key',ASSETS:{fetch:async()=>new Response(new Uint8Array([255,216,255,1]),{headers:{'Content-Type':'image/jpeg'}})},PHOTO_LIMITER:{limit:async()=>({success:true})},PHOTO_HOURLY:{idFromName:id=>id,get:()=>({fetch:async()=>Response.json({allowed:true})})}};}
 test('jersey catalogue contains all 32 current teams with fixed Canadian shop references',()=>{
  assert.equal(NHL_TEAMS.length,32);assert.equal(new Set(NHL_TEAMS.map(x=>x.id)).size,32);assert.equal(NHL_TEAMS.find(x=>x.id==='UTA').name,'Utah Mammoth');
  for(const item of NHL_TEAMS){assert.match(item.source,/^https:\/\/www\.nhlshop\.ca\/en\//);for(const view of ['front','back']){assert.match(item[view],/^\/jersey-assets\/[a-z]{3}-(front|back)\.(jpg|png)$/);const url=new URL(item['reference'+view[0].toUpperCase()+view.slice(1)]);assert.equal(url.hostname,'images.footballfanatics.com');}}
@@ -42,4 +44,22 @@ test('a custom jersey bypasses remote reference fetching and upstream errors sta
  const original=globalThis.fetch;let calls=0;
  globalThis.fetch=async(url,options)=>{calls++;assert.equal(url,'https://api.openai.com/v1/images/edits');assert.equal(options.body.getAll('image[]').length,2);return Response.json({error:{code:'model_not_found',message:'sensitive debug test-key'}},{status:403});};
  try{const response=await worker.fetch(request({jersey:person}),environment());const text=await response.text();assert.match(text,/event: error/);assert.match(text,/check image model access/);assert(!text.includes('test-key'));assert(!text.includes('sensitive'));assert.equal(calls,1);}finally{globalThis.fetch=original;}
+});
+
+test('referral code is verified on the server before any asset or paid AI call',async()=>{
+ const original=globalThis.fetch;let calls=0,assets=0;
+ globalThis.fetch=async()=>{calls++;throw Error('unexpected paid call');};
+ try{
+  const env=environment();env.ASSETS.fetch=async()=>{assets++;throw Error('unexpected asset');};
+  for(const change of [{accessCode:undefined},{accessCode:'WRONGCODE123'},{accessCode:null},{accessCode:{}}])assert.equal((await worker.fetch(request(change),env)).status,403);
+  const accepted=await worker.fetch(request({action:'access',accessCode:' testjersey123 '}),env);assert.equal(accepted.status,200);assert.deepEqual(await accepted.json(),{authorized:true});
+  const config=await worker.fetch(new Request('https://myhockeyfit.com/api/jersey-look'),env);const data=await config.json();assert.equal(data.requiresCode,true);assert(!JSON.stringify(data).includes(testCode));assert(!JSON.stringify(data).includes(testHash));
+  assert.equal(calls,0);assert.equal(assets,0);
+ }finally{globalThis.fetch=original;}
+});
+test('code attempts are limited and verification fails closed',async()=>{
+ const env=environment();env.ADMIN_LIMITER.limit=async()=>({success:false});
+ const response=await worker.fetch(request({action:'access'}),env);assert.equal(response.status,429);assert.equal(response.headers.get('Retry-After'),'60');
+ delete env.ADMIN_LIMITER;assert.equal((await worker.fetch(request({action:'access'}),env)).status,503);
+ env.ADMIN_LIMITER={limit:async()=>({success:true})};env.JERSEY_ACCESS_CODE_HASH='invalid';assert.equal((await worker.fetch(request({action:'access'}),env)).status,403);
 });
