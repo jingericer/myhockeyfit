@@ -1,10 +1,10 @@
 import {NHL_TEAMS} from './jersey-teams.mjs';
 const MAX_LOOK_BYTES=3500000;
-function jpeg(value){return typeof value==='string'&&value.length>=100&&value.length<=1600000&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(value);}
+function jpeg(value){return typeof value==='string'&&value.length>=100&&value.length<=1600000&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(value)&&value.split(',')[1].length%4===0;}
 function photoBlob(value){const bytes=Uint8Array.from(atob(value.split(',')[1]),char=>char.charCodeAt(0));return new Blob([bytes],{type:'image/jpeg'});}
-async function referenceBlob(url){
-  // The URL comes only from our fixed team catalogue, never from the request.
-  const response=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(15000)});
+async function referenceBlob(path,request,env){
+  // The asset path comes only from our fixed team catalogue, never from the request.
+  const response=await env.ASSETS.fetch(new Request(new URL(path,request.url)));
   const mime=response.headers.get('Content-Type')?.split(';')[0];
   if(!response.ok||!['image/jpeg','image/png'].includes(mime)||Number(response.headers.get('Content-Length'))>2000000)throw Error('reference');
   const reader=response.body.getReader(),chunks=[];let size=0;
@@ -41,7 +41,7 @@ export async function handleJerseyLook(request,env,ctx,{reply,readLimited,record
   if(!body||typeof body!=='object'||body.consent!==true||!jpeg(body.person)||!['front','back'].includes(body.view)||typeof body.number!=='string'||!/^(?:\d{1,2})?$/.test(body.number)||body.jersey!==undefined&&!jpeg(body.jersey))return reply({error:'Choose a photo, a number from 0 to 99 and confirm photo sharing.'},400);
   const team=NHL_TEAMS.find(item=>item.id===body.team);if(!team)return reply({error:'Choose an NHL team.'},400);
   const denied=await reserveSlot(request,env,reply);if(denied)return denied;
-  let reference;try{reference=body.jersey?photoBlob(body.jersey):await referenceBlob(team[body.view]);}catch{return reply({error:'The team jersey photo could not be loaded. Upload a jersey photo or return later.'},502);}
+  let reference;try{reference=body.jersey?photoBlob(body.jersey):await referenceBlob(team[body.view],request,env);}catch{return reply({error:'The team jersey photo could not be loaded. Upload a jersey photo or return later.'},502);}
   const form=new FormData();
   form.append('model','gpt-image-1.5');form.append('n','1');form.append('size','1024x1536');form.append('quality','medium');form.append('input_fidelity','high');form.append('output_format','jpeg');form.append('output_compression','85');form.append('moderation','auto');
   form.append('image[]',photoBlob(body.person),'person.jpg');form.append('image[]',reference,reference.type==='image/png'?'jersey.png':'jersey.jpg');
