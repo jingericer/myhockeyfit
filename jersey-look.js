@@ -1,5 +1,5 @@
 import {NHL_TEAMS} from './jersey-teams.mjs?v=1';
-import {validateLookInput,previewBlob,previewError,readPreview} from './jersey-look-utils.mjs?v=20261001-preview-fix';
+import {validateLookInput,previewBlob,previewError,readPreview} from './jersey-look-utils.mjs?v=20261001-front-only';
 const $=selector=>document.querySelector(selector);
 let step=0,team=null,person='',customJersey='',resultUrl='',busy=false,enabled=false,uploadVersion=0;
 let accessCode='',remaining=0,source='nhl';
@@ -23,9 +23,8 @@ function renderTeams(){
 }
 function number(){return $('#jerseyNumber').value.trim();}
 function validNumber(){return !number()||/^\d{1,2}$/.test(number());}
-function view(){return $('.photo-direction .selected').dataset.view;}
 function updateReference(){
-  $('#selectedTeam').textContent=jerseyName();const image=jerseyPhoto()||(source==='nhl'&&team?.[view()]);if(image)$('#jerseyPreview').src=image;else $('#jerseyPreview').removeAttribute('src');$('#jerseyPreview').alt=jerseyPhoto()?'Your uploaded jersey':jerseyName()+' home jersey';
+  $('#selectedTeam').textContent=jerseyName();const image=jerseyPhoto()||(source==='nhl'&&team?.front);if(image)$('#jerseyPreview').src=image;else $('#jerseyPreview').removeAttribute('src');$('#jerseyPreview').alt=jerseyPhoto()?'Your uploaded jersey':jerseyName()+' home jersey';
   $('#numberPreview').textContent=number();$('.number-tag').hidden=!number();$('#jerseySource').href=team?.source||'';$('#jerseySource').hidden=source==='photo'||!team;
 }
 function updateButton(){const valid=!!accessCode&&(step===0?(source==='photo'?!!customJersey:!!team):step===1?validNumber():validNumber()&&(source==='photo'?!!customJersey:!!team)&&!!person&&$('#aiConsent').checked&&enabled&&remaining>0);$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
@@ -34,7 +33,6 @@ $('#teamChoices').addEventListener('click',event=>{const choice=event.target.clo
 $('#teamSearch').addEventListener('input',renderTeams);
 $('#jerseyNumber').addEventListener('input',()=>{updateReference();updateButton();status(validNumber()?'':'Use a number from 0 to 99.');});
 $('#backButton').addEventListener('click',()=>showStep(step-1));
-document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-view]').forEach(item=>{item.classList.toggle('selected',item===button);item.setAttribute('aria-pressed',String(item===button));});$('#poseHint').textContent=view()==='front'?'Face the camera with your arms slightly away from your body.':'Use a photo taken from behind, with your shoulders and hips visible.';updateReference();}));
 async function imageData(file){
   if(!file||!file.type.startsWith('image/'))throw Error('Choose a photo file.');
   if(file.size>20000000)throw Error('Choose a photo smaller than 20 MB.');
@@ -56,7 +54,7 @@ $('#removePhoto').addEventListener('click',removePerson);$('#removeJersey').addE
 $('#lookForm').addEventListener('submit',async event=>{
   event.preventDefault();if(busy||$('#nextButton').disabled)return;
   if(step<2){showStep(step+1);return;}
-  const payload={accessCode,team:source==='nhl'?team?.id:undefined,number:number(),view:view(),person,jersey:jerseyPhoto()||undefined,consent:$('#aiConsent').checked};
+  const payload={accessCode,team:source==='nhl'?team?.id:undefined,number:number(),view:'front',person,jersey:jerseyPhoto()||undefined,consent:$('#aiConsent').checked};
   const invalid=validateLookInput(payload);if(invalid){status(invalid.error);return;}
   busy=true;updateButton();status();$('#lookForm').hidden=true;$('.progress').hidden=true;$('#creating').hidden=false;
   try{

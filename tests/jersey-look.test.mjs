@@ -19,7 +19,7 @@ test('invalid consent, photos, team, number and origin cannot reach a paid image
  const original=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('unexpected');};
  try{
   const env=environment();assert.equal((await worker.fetch(request({},'https://other.example'),env)).status,403);
-  for(const change of [{consent:false},{person:'https://other.example/photo.jpg'},{person:null},{person:'data:image/jpeg;base64,/9j/'+ 'A'.repeat(121)},{team:'UNKNOWN'},{number:'100'},{number:'make me thinner'},{view:'side'},{jersey:'https://other.example/jersey.jpg'}])assert.equal((await worker.fetch(request(change),env)).status,400);
+  for(const change of [{consent:false},{person:'https://other.example/photo.jpg'},{person:null},{person:'data:image/jpeg;base64,/9j/'+ 'A'.repeat(121)},{team:'UNKNOWN'},{number:'100'},{number:'make me thinner'},{view:'side'},{view:'back'},{jersey:'https://other.example/jersey.jpg'}])assert.equal((await worker.fetch(request(change),env)).status,400);
   assert.equal(calls,0);
  }finally{globalThis.fetch=original;}
 });
@@ -38,7 +38,7 @@ test('image edits use the person and exact jersey references, preserve custom di
   assert.equal(url,'https://api.openai.com/v1/images/edits');const form=options.body;assert(form instanceof FormData);assert.equal(form.getAll('image[]').length,2);assert.equal(form.get('model'),'gpt-image-1.5');assert.equal(form.get('input_fidelity'),'high');assert.equal(form.get('output_format'),'jpeg');assert.match(form.get('prompt'),/custom number 07/);assert.match(form.get('prompt'),/Preserve the person's identity/);assert.match(form.get('prompt'),/no claims about real sizes/);assert.equal(form.get('n'),'1');
   return Response.json({data:[{b64_json:jpeg}]});
  };
- try{const env=environment();let asset;env.ASSETS.fetch=async request=>{asset=new URL(request.url).pathname;return new Response(new Uint8Array([255,216,255,1]),{headers:{'Content-Type':'image/jpeg'}});};const response=await worker.fetch(request({number:'07',view:'back'}),env);assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.match(response.headers.get('Content-Type'),/event-stream/);const text=await response.text();assert.match(text,/event: result/);assert.match(text,/data:image\/jpeg;base64/);assert.equal(asset,NHL_TEAMS.find(x=>x.id==='OTT').back);assert.equal(calls.length,1);}finally{globalThis.fetch=original;}
+ try{const env=environment();let asset;env.ASSETS.fetch=async request=>{asset=new URL(request.url).pathname;return new Response(new Uint8Array([255,216,255,1]),{headers:{'Content-Type':'image/jpeg'}});};const response=await worker.fetch(request({number:'07',view:undefined}),env);assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.match(response.headers.get('Content-Type'),/event-stream/);const text=await response.text();assert.match(text,/event: result/);assert.match(text,/data:image\/jpeg;base64/);assert.equal(asset,NHL_TEAMS.find(x=>x.id==='OTT').front);assert.equal(calls.length,1);}finally{globalThis.fetch=original;}
 });
 test('a custom jersey bypasses remote reference fetching and upstream errors stay private',async()=>{
  const original=globalThis.fetch;let calls=0;

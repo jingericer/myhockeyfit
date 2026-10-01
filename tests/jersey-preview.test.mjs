@@ -4,6 +4,7 @@ import {validateLookInput,previewBlob,previewError,readPreview} from '../jersey-
 const jpeg='data:image/jpeg;base64,/9j/'+'A'.repeat(120);
 const body={person:jpeg,jersey:jpeg,consent:true,view:'front',number:''};
 test('optional jersey numbers accept blank, absent and whitespace; errors identify the actual field',()=>{
+ assert.equal(validateLookInput({...body,view:undefined}),null);assert.equal(validateLookInput({...body,view:'back'}).field,'view');
  for(const number of ['',undefined,'  ',' 07 ','99'])assert.equal(validateLookInput({...body,number}),null);
  for(const [field,change] of [['person',{person:'data:image/png;base64,AAAA'}],['jersey',{jersey:'invalid'}],['number',{number:'100'}],['consent',{consent:false}],['view',{view:'side'}]]){
  const invalid=validateLookInput({...body,...change});assert.equal(invalid.field,field);if(field!=='number')assert(!invalid.error.includes('99'));

@@ -4,7 +4,7 @@ export function validateLookInput(body){
  if(body.consent!==true)return {field:'consent',error:'Confirm permission to send your photos to AI.'};
  if(!jpeg(body.person))return {field:'person',error:'Your personal photo could not be used. Please upload it again as a JPEG or PNG.'};
  if(body.jersey!==undefined&&!jpeg(body.jersey))return {field:'jersey',error:'Your jersey photo could not be used. Please upload it again as a JPEG or PNG.'};
- if(!['front','back'].includes(body.view))return {field:'view',error:'Choose a front or back view.'};
+ if(body.view!==undefined&&body.view!=='front')return {field:'view',error:'Use a front photo of yourself and the jersey.'};
  if(body.number!==undefined&&(typeof body.number!=='string'||!/^(?:\d{1,2})?$/.test(body.number.trim())))return {field:'number',error:'Use a number from 0 to 99, or leave it empty.'};
  return null;
 }

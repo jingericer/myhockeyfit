@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="jersey-look.css?v=20261001-preview-fix">
+  <link rel="stylesheet" href="jersey-look.css?v=20261001-front-only">
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "My Jersey Look", "url": "https://myhockeyfit.com/jersey-look", "description": "AI virtual try on for NHL hockey jerseys with a personal photo and custom jersey number. A visual preview, not a real size or fit assessment.", "applicationCategory": "LifestyleApplication", "operatingSystem": "Web browser", "inLanguage": "en", "isAccessibleForFree": true, "featureList": ["32 NHL teams", "Custom jersey numbers", "Photo based virtual jersey try on", "Downloadable AI preview"], "publisher": {"@type": "Organization", "name": "MyHockeyFit", "url": "https://myhockeyfit.com/"}}</script>
 </head>
 <body>
@@ -38,7 +38,7 @@
       <section class="step" data-step="0" aria-labelledby="teamHeading">
         <h2 id="teamHeading" tabindex="-1">Choose your jersey</h2><p class="hint">Pick an NHL team or photograph any jersey.</p>
         <div class="photo-direction jersey-mode" role="group" aria-label="Jersey source"><button type="button" data-source="nhl" class="selected" aria-pressed="true">NHL teams</button><button type="button" data-source="photo" aria-pressed="false">My jersey photo</button></div>
-        <div id="ownJersey" hidden><p class="hint compact">Lay the jersey flat or hang it up. Include the whole front or back.</p><div class="upload-actions"><label class="upload-button">Take jersey photo<input id="jerseyCamera" type="file" accept="image/*" capture="environment"></label><label class="upload-button secondary">Upload jersey<input id="customJersey" type="file" accept="image/*"></label><button id="removeJersey" class="text-button" type="button" hidden>Remove jersey photo</button></div><img id="ownJerseyPreview" class="person-preview" alt="Your jersey photo" hidden></div>
+        <div id="ownJersey" hidden><p class="hint compact">Lay the jersey flat or hang it up. Include the whole front.</p><div class="upload-actions"><label class="upload-button">Take jersey photo<input id="jerseyCamera" type="file" accept="image/*" capture="environment"></label><label class="upload-button secondary">Upload jersey<input id="customJersey" type="file" accept="image/*"></label><button id="removeJersey" class="text-button" type="button" hidden>Remove jersey photo</button></div><img id="ownJerseyPreview" class="person-preview" alt="Your jersey photo" hidden></div>
         <div id="nhlJerseys">
         <label class="search-label" for="teamSearch">Find a team<input id="teamSearch" type="search" placeholder="Team or city" autocomplete="off"></label>
         <div id="teamChoices" class="team-grid" role="group" aria-label="NHL teams"></div><p id="noTeams" class="hint" hidden>No teams found. Try a city name.</p></div>
@@ -47,13 +47,12 @@
         <h2 id="numberHeading" tabindex="-1">Make it yours</h2><p class="hint" id="selectedTeam"></p>
         <div class="jersey-reference"><img id="jerseyPreview" alt="Selected home jersey" width="320" height="320"><div class="number-tag" aria-label="Selected number">#<span id="numberPreview">22</span></div></div>
         <label class="field" for="jerseyNumber">Your number<input id="jerseyNumber" type="text" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" value="22" autocomplete="off"><small>0 to 99. For your own jersey, leave empty to keep its design.</small></label>
-        <p class="hint compact">Front views show your number on the sleeves. Back views show it on the back.</p>
+        <p class="hint compact">Your number appears on the sleeves.</p>
 
         <a id="jerseySource" class="source" target="_blank" rel="noopener noreferrer">Jersey reference from NHL Shop Canada</a>
       </section>
       <section class="step" data-step="2" hidden aria-labelledby="photoHeading">
-        <h2 id="photoHeading" tabindex="-1">Add your photo</h2><p class="hint">One person, fully clothed. Include your head, arms and hips. Match the view of your jersey photo.</p>
-        <div class="photo-direction" role="group" aria-label="Photo direction"><button type="button" data-view="front" class="selected" aria-pressed="true">Front view</button><button type="button" data-view="back" aria-pressed="false">Back view</button></div>
+        <h2 id="photoHeading" tabindex="-1">Add your photo</h2><p class="hint">One person, fully clothed. Include your head, arms and hips. Use a front photo.</p>
         <p id="poseHint" class="hint compact">Face the camera with your arms slightly away from your body.</p>
         <div id="photoEmpty" class="photo-empty"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 28h16l6-8h16l6 8h16v52H20z"/><circle cx="50" cy="52" r="16"/></svg><p>Your photo stays here until you create your look.</p></div>
         <img id="personPreview" class="person-preview" alt="Your photo for virtual try on" hidden>
@@ -70,6 +69,6 @@
     <noscript><p>Please enable JavaScript to choose a jersey and create a look.</p></noscript>
   </main>
   <footer><p>A fun visual preview. Check the real jersey size before buying.</p><p>Independent community project. Not affiliated with the NHL or its teams.</p></footer>
-  <script type="module" src="jersey-look.js?v=20261001-preview-fix"></script>
+  <script type="module" src="jersey-look.js?v=20261001-front-only"></script>
 </body>
 </html>
