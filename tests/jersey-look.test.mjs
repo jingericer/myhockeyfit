@@ -6,7 +6,7 @@ import {NHL_TEAMS} from '../jersey-teams.mjs';
 globalThis.crypto ??= webcrypto;
 const jpeg='/9j/'+ 'A'.repeat(120);
 const person='data:image/jpeg;base64,'+jpeg;
-const testCode='TESTJERSEY123';
+const testCode='ABCD';
 const testHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(testCode))),b=>b.toString(16).padStart(2,'0')).join('');
 const body={accessCode:testCode,team:'OTT',number:'22',view:'front',person,consent:true};
 const request=(changes={},origin='https://myhockeyfit.com')=>new Request('https://myhockeyfit.com/api/jersey-look',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.7'},body:JSON.stringify({...body,...changes})});
@@ -52,7 +52,7 @@ test('referral code is verified on the server before any asset or paid AI call',
  try{
   const env=environment();env.ASSETS.fetch=async()=>{assets++;throw Error('unexpected asset');};
   for(const change of [{accessCode:undefined},{accessCode:'WRONGCODE123'},{accessCode:null},{accessCode:{}}])assert.equal((await worker.fetch(request(change),env)).status,403);
-  const accepted=await worker.fetch(request({action:'access',accessCode:' testjersey123 '}),env);assert.equal(accepted.status,200);assert.deepEqual(await accepted.json(),{authorized:true});
+  const accepted=await worker.fetch(request({action:'access',accessCode:' abcd '}),env);assert.equal(accepted.status,200);assert.deepEqual(await accepted.json(),{authorized:true});
   const config=await worker.fetch(new Request('https://myhockeyfit.com/api/jersey-look'),env);const data=await config.json();assert.equal(data.requiresCode,true);assert(!JSON.stringify(data).includes(testCode));assert(!JSON.stringify(data).includes(testHash));
   assert.equal(calls,0);assert.equal(assets,0);
  }finally{globalThis.fetch=original;}

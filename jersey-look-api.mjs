@@ -1,11 +1,11 @@
 import {NHL_TEAMS} from './jersey-teams.mjs';
 const MAX_LOOK_BYTES=3500000;
 // Only a hash is deployed. Set JERSEY_ACCESS_CODE_HASH to rotate it without a code change.
-const DEFAULT_ACCESS_HASH='59e35910ed4a91b9ca78f0a9ab8a81aa9ab74b7e9913d6377d32ff961ae57614';
+const DEFAULT_ACCESS_HASH='4865e6f8f411315d7aa2a69e5118da08dfd4d668276b838edf15079e02e78a92';
 async function validAccess(value,env){
   if(typeof value!=='string'||value.length>64)return false;
   const normalized=value.trim().toUpperCase();
-  if(!/^[A-Z0-9]{8,64}$/.test(normalized))return false;
+  if(!/^[A-Z0-9]{4,64}$/.test(normalized))return false;
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(normalized));
   const actual=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
   const expected=env.JERSEY_ACCESS_CODE_HASH||DEFAULT_ACCESS_HASH;
