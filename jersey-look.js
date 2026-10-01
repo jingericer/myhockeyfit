@@ -1,4 +1,5 @@
 import {NHL_TEAMS} from './jersey-teams.mjs?v=1';
+import {validateLookInput,previewBlob,previewError,readPreview} from './jersey-look-utils.mjs?v=20261001-preview-fix';
 const $=selector=>document.querySelector(selector);
 let step=0,team=null,person='',customJersey='',resultUrl='',busy=false,enabled=false,uploadVersion=0;
 let accessCode='',remaining=0,source='nhl';
@@ -27,7 +28,7 @@ function updateReference(){
   $('#selectedTeam').textContent=jerseyName();const image=jerseyPhoto()||(source==='nhl'&&team?.[view()]);if(image)$('#jerseyPreview').src=image;else $('#jerseyPreview').removeAttribute('src');$('#jerseyPreview').alt=jerseyPhoto()?'Your uploaded jersey':jerseyName()+' home jersey';
   $('#numberPreview').textContent=number();$('.number-tag').hidden=!number();$('#jerseySource').href=team?.source||'';$('#jerseySource').hidden=source==='photo'||!team;
 }
-function updateButton(){const valid=!!accessCode&&(step===0?(source==='photo'?!!customJersey:!!team):step===1?validNumber():!!person&&$('#aiConsent').checked&&enabled&&remaining>0);$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
+function updateButton(){const valid=!!accessCode&&(step===0?(source==='photo'?!!customJersey:!!team):step===1?validNumber():validNumber()&&(source==='photo'?!!customJersey:!!team)&&!!person&&$('#aiConsent').checked&&enabled&&remaining>0);$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
 function showStep(next,focus=true){step=next;document.querySelectorAll('.step').forEach((element,i)=>element.hidden=i!==step);document.querySelectorAll('.progress>span').forEach((element,i)=>{element.className=i===step?'active':i<step?'done':'';if(i===step)element.setAttribute('aria-current','step');else element.removeAttribute('aria-current');});$('#backButton').hidden=step===0;updateReference();updateButton();status();if(focus)$(`.step[data-step="${step}"] h2`).focus();}
 $('#teamChoices').addEventListener('click',event=>{const choice=event.target.closest('[data-team]');if(!choice)return;team=NHL_TEAMS.find(item=>item.id===choice.dataset.team);source='nhl';renderTeams();updateJerseySource();track('jersey_start');});
 $('#teamSearch').addEventListener('input',renderTeams);
@@ -46,31 +47,22 @@ async function imageData(file){
 }
 async function upload(event,kind){
   const current=++uploadVersion;$('#nextButton').disabled=true;status('Preparing your photo…');
-  try{const data=await imageData(event.target.files?.[0]);if(current!==uploadVersion)return;if(kind==='person'){person=data;$('#personPreview').src=data;$('#personPreview').hidden=false;$('#photoEmpty').hidden=true;$('#removePhoto').hidden=false;$('#aiConsent').checked=false;}else{customJersey=data;source='photo';$('#jerseyNumber').value='';renderTeams();updateJerseySource();track('jersey_start');}status();}
+  try{const data=await imageData(event.target.files?.[0]);if(current!==uploadVersion)return;if(!/^data:image\/jpeg;base64,\/9j\//.test(data))throw Error('This photo could not be converted. Try a JPEG, PNG or screenshot.');if(kind==='person'){person=data;$('#personPreview').src=data;$('#personPreview').hidden=false;$('#photoEmpty').hidden=true;$('#removePhoto').hidden=false;$('#aiConsent').checked=false;}else{customJersey=data;source='photo';$('#jerseyNumber').value='';renderTeams();updateJerseySource();track('jersey_start');}status();}
   catch(error){if(current===uploadVersion)status(error.message);}finally{event.target.value='';if(current===uploadVersion)updateButton();}
 }
 $('#personCamera').addEventListener('change',event=>upload(event,'person'));$('#personUpload').addEventListener('change',event=>upload(event,'person'));$('#customJersey').addEventListener('change',event=>upload(event,'jersey'));$('#jerseyCamera').addEventListener('change',event=>upload(event,'jersey'));
 function removePerson(){uploadVersion++;person='';$('#personPreview').removeAttribute('src');$('#personPreview').hidden=true;$('#photoEmpty').hidden=false;$('#removePhoto').hidden=true;$('#aiConsent').checked=false;updateButton();}
 $('#removePhoto').addEventListener('click',removePerson);$('#removeJersey').addEventListener('click',()=>{uploadVersion++;customJersey='';$('#customJersey').value='';updateJerseySource();});$('#aiConsent').addEventListener('change',updateButton);
-async function readResult(response){
-  if(!response.ok){const data=await response.json();throw Error(data.error||'Could not create your look.');}
-  if(!response.body||!response.headers.get('Content-Type')?.includes('text/event-stream'))throw Error('Unexpected response. Please return later.');
-  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',result;
-  try{
-    while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});if(buffer.length>10000000)throw Error('The generated image is too large.');let end;
-      while((end=buffer.indexOf('\n\n'))!==-1){const block=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=block.match(/^event: (.+)$/m)?.[1],payload=block.match(/^data: (.+)$/m)?.[1];if(!payload)continue;const data=JSON.parse(payload);if(event==='error')throw Error(data.error||'Could not create your look.');if(event==='progress'){$('#creatingStatus').textContent=data.message;showQuota(data.remaining);}if(event==='result')result=data;}
-    }
-  }finally{await reader.cancel().catch(()=>{});}
-  if(!result||typeof result.image!=='string'||!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(result.image))throw Error('No image was returned. Please return later.');return result;
-}
 $('#lookForm').addEventListener('submit',async event=>{
   event.preventDefault();if(busy||$('#nextButton').disabled)return;
   if(step<2){showStep(step+1);return;}
+  const payload={accessCode,team:source==='nhl'?team?.id:undefined,number:number(),view:view(),person,jersey:jerseyPhoto()||undefined,consent:$('#aiConsent').checked};
+  const invalid=validateLookInput(payload);if(invalid){status(invalid.error);return;}
   busy=true;updateButton();status();$('#lookForm').hidden=true;$('.progress').hidden=true;$('#creating').hidden=false;
   try{
-    const response=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode,team:source==='nhl'?team.id:undefined,number:number(),view:view(),person,jersey:jerseyPhoto()||undefined,consent:true}),signal:AbortSignal.timeout(190000)});
-    const data=await readResult(response);clearResult();const blob=await(await fetch(data.image)).blob();resultUrl=URL.createObjectURL(blob);$('#resultImage').src=resultUrl;$('#resultTeam').textContent=jerseyName()+(number()?' · #'+number():'');$('#lookResult').hidden=false;$('#resultHeading').focus();
-  }catch(error){$('#lookForm').hidden=false;$('.progress').hidden=false;status(error.name==='TimeoutError'?'The preview took too long. Please wait before trying again.':error.message||'Could not create your look. Please return later.');}
+    const response=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(190000)});
+    const data=await readPreview(response,data=>{$('#creatingStatus').textContent=data.message;showQuota(data.remaining);});clearResult();resultUrl=URL.createObjectURL(previewBlob(data.image));showQuota(data.remaining);$('#resultImage').src=resultUrl;$('#resultTeam').textContent=jerseyName()+(number()?' · #'+number():'');$('#lookResult').hidden=false;$('#resultHeading').focus();
+  }catch(error){$('#lookForm').hidden=false;$('.progress').hidden=false;status(previewError(error));try{const check=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'access',accessCode}),signal:AbortSignal.timeout(10000)});if(check.ok)showQuota((await check.json()).remaining);}catch{}}
   finally{busy=false;$('#creating').hidden=true;updateButton();}
 });
 function clearResult(){if(resultUrl)URL.revokeObjectURL(resultUrl);resultUrl='';$('#resultImage').removeAttribute('src');$('#lookResult').hidden=true;}

@@ -1,4 +1,5 @@
 import {NHL_TEAMS} from './jersey-teams.mjs';
+import {validateLookInput} from './jersey-look-utils.mjs';
 const MAX_LOOK_BYTES=3500000;
 // Only code hashes are deployed. JERSEY_ACCESS_CODE_HASH overrides the invite list.
 const DEFAULT_ACCESS_HASHES=[
@@ -100,7 +101,6 @@ async function accessAttempt(request,env,reply){
   }catch{return reply({error:'Code verification is temporarily unavailable.'},503);}
   return null;
 }
-function jpeg(value){return typeof value==='string'&&value.length>=100&&value.length<=1600000&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(value)&&value.split(',')[1].length%4===0;}
 function photoBlob(value){const bytes=Uint8Array.from(atob(value.split(',')[1]),char=>char.charCodeAt(0));return new Blob([bytes],{type:'image/jpeg'});}
 async function referenceBlob(path,request,env){
   // The asset path comes only from our fixed team catalogue, never from the request.
@@ -157,7 +157,8 @@ export async function handleJerseyLook(request,env,ctx,{reply,readLimited,record
       catch{return reply({error:'Could not check your remaining uses. Please return later.'},503);}
     }
   }
-  if(!body||typeof body!=='object'||body.consent!==true||!jpeg(body.person)||!['front','back'].includes(body.view)||typeof body.number!=='string'||!/^(?:\d{1,2})?$/.test(body.number)||body.jersey!==undefined&&!jpeg(body.jersey))return reply({error:'Choose a photo, a number from 0 to 99 and confirm photo sharing.'},400);
+  const invalid=validateLookInput(body);if(invalid)return reply(invalid,400);
+  body.number=body.number?.trim()||'';
   const team=NHL_TEAMS.find(item=>item.id===body.team);if(!team&&(!body.jersey||body.team!==undefined))return reply({error:'Choose an NHL team or add a jersey photo.'},400);
   const denied=await reserveSlot(request,env,reply);if(denied)return denied;
   let reference;try{reference=body.jersey?photoBlob(body.jersey):await referenceBlob(team[body.view],request,env);}catch{return reply({error:'The team jersey photo could not be loaded. Upload a jersey photo or return later.'},502);}
