@@ -87,3 +87,12 @@ test('All 76 Blazers, Blazer and existing invites are accepted without spending 
   assert.equal(paid,0);assert.equal(reservations,0);
  }finally{globalThis.fetch=original;}
 });
+
+ test('two photos work without an NHL team and preserve the uploaded jersey',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(url,options)=>{calls++;assert.equal(url,'https://api.openai.com/v1/images/edits');const images=options.body.getAll('image[]');assert.equal(images.length,2);assert.equal(await images[1].text(),await images[0].text());assert.match(options.body.get('prompt'),/Preserve any existing player name and numbers/);assert.match(options.body.get('prompt'),/Use the uploaded jersey design exactly/);return Response.json({data:[{b64_json:jpeg}]});};
+ try{const env=environment();env.ASSETS.fetch=async()=>{throw Error('Custom jersey must not load team assets');};
+  assert.equal((await worker.fetch(request({team:undefined}),env)).status,400);
+  const response=await worker.fetch(request({team:undefined,jersey:person,number:''}),env);assert.equal(response.status,200);assert.match(await response.text(),/event: result/);assert.equal(calls,1);
+ }finally{globalThis.fetch=original;}
+});
