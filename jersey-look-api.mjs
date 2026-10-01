@@ -51,6 +51,16 @@ async function reserveSlot(request,env,reply){
   }catch{return reply({error:'AI previews are temporarily unavailable. Please return later.'},503);}
   return null;
 }
+async function jerseyQuota(request,env,reserve=false){
+  const ip=request.headers.get('CF-Connecting-IP');if(!ip)throw Error('missing address');
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ip));
+  const key='jersey-lifetime:'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  const response=await env.PHOTO_HOURLY.get(env.PHOTO_HOURLY.idFromName(key)).fetch('https://limiter/'+(reserve?'jersey-use':'jersey-status'),{method:reserve?'POST':'GET'});
+  if(!response.ok)throw Error('quota unavailable');
+  const data=await response.json();
+  if(typeof data.allowed!=='boolean'||!Number.isInteger(data.remaining)||data.remaining<0||data.remaining>5)throw Error('invalid quota');
+  return data;
+}
 export async function handleJerseyLook(request,env,ctx,{reply,readLimited,recordUsage}){
   const enabled=!!env.OPENAI_API_KEY&&!!env.PHOTO_LIMITER&&!!env.PHOTO_HOURLY;
   if(request.method==='GET')return reply({enabled,requiresCode:true});
@@ -64,12 +74,17 @@ export async function handleJerseyLook(request,env,ctx,{reply,readLimited,record
   if(body?.action==='access'||!authorized){
     const blocked=await accessAttempt(request,env,reply);if(blocked)return blocked;
     if(!authorized)return reply({error:'Enter a valid referral code to use My Jersey Look.'},403);
-    if(body.action==='access')return reply({authorized:true});
+    if(body.action==='access'){
+      try{const quota=await jerseyQuota(request,env);return reply({authorized:true,remaining:quota.remaining});}
+      catch{return reply({error:'Could not check your remaining uses. Please return later.'},503);}
+    }
   }
   if(!body||typeof body!=='object'||body.consent!==true||!jpeg(body.person)||!['front','back'].includes(body.view)||typeof body.number!=='string'||!/^(?:\d{1,2})?$/.test(body.number)||body.jersey!==undefined&&!jpeg(body.jersey))return reply({error:'Choose a photo, a number from 0 to 99 and confirm photo sharing.'},400);
   const team=NHL_TEAMS.find(item=>item.id===body.team);if(!team)return reply({error:'Choose an NHL team.'},400);
   const denied=await reserveSlot(request,env,reply);if(denied)return denied;
   let reference;try{reference=body.jersey?photoBlob(body.jersey):await referenceBlob(team[body.view],request,env);}catch{return reply({error:'The team jersey photo could not be loaded. Upload a jersey photo or return later.'},502);}
+  let quota;try{quota=await jerseyQuota(request,env,true);}catch{return reply({error:'Could not check your remaining uses. Please return later.'},503);}
+  if(!quota.allowed)return reply({error:'You have used all 5 My Jersey Look generations for this internet connection. This limit keeps the community project affordable. Refreshing or reentering your code will not reset it.'},429);
   const form=new FormData();
   form.append('model','gpt-image-1.5');form.append('n','1');form.append('size','1024x1536');form.append('quality','medium');form.append('input_fidelity','high');form.append('output_format','jpeg');form.append('output_compression','85');form.append('moderation','auto');
   form.append('image[]',photoBlob(body.person),'person.jpg');form.append('image[]',reference,reference.type==='image/png'?'jersey.png':'jersey.jpg');
@@ -79,7 +94,7 @@ export async function handleJerseyLook(request,env,ctx,{reply,readLimited,record
   const stream=new ReadableStream({
     start(controller){
       const send=(event,data)=>{if(closed)return;try{controller.enqueue(new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));}catch{closed=true;abort.abort();}};
-      send('progress',{message:'Creating your jersey preview…'});
+      send('progress',{message:'Creating your jersey preview…',remaining:quota.remaining});
       heartbeat=setInterval(()=>{if(!closed)try{controller.enqueue(new TextEncoder().encode(': working\n\n'));}catch{closed=true;abort.abort();}},10000);
       const timeout=setTimeout(()=>abort.abort(),175000);
       (async()=>{
@@ -96,7 +111,7 @@ export async function handleJerseyLook(request,env,ctx,{reply,readLimited,record
           const data=await response.json();const image=data.data?.[0]?.b64_json;
           if(typeof image!=='string'||image.length>9000000||!/^\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(image))throw Error('invalid output');
           await recordUsage(request,env,ctx,'My Jersey Look','jersey_ai_result');
-          send('result',{image:`data:image/jpeg;base64,${image}`});
+          send('result',{image:`data:image/jpeg;base64,${image}`,remaining:quota.remaining});
         }catch{send('error',{error:abort.signal.aborted?'The preview took too long. Please wait before trying again.':'AI could not complete this preview. Please return later.'});}
         finally{clearTimeout(timeout);clearInterval(heartbeat);if(!closed){closed=true;controller.close();}}
       })();

@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="jersey-look.css?v=20261001-invite1">
+  <link rel="stylesheet" href="jersey-look.css?v=20261001-quota1">
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "My Jersey Look", "url": "https://myhockeyfit.com/jersey-look", "description": "AI virtual try on for NHL hockey jerseys with a personal photo and custom jersey number. A visual preview, not a real size or fit assessment.", "applicationCategory": "LifestyleApplication", "operatingSystem": "Web browser", "inLanguage": "en", "isAccessibleForFree": true, "featureList": ["32 NHL teams", "Custom jersey numbers", "Photo based virtual jersey try on", "Downloadable AI preview"], "publisher": {"@type": "Organization", "name": "MyHockeyFit", "url": "https://myhockeyfit.com/"}}</script>
 </head>
 <body>
@@ -28,11 +28,12 @@
     <div class="intro"><span class="eyebrow">YOUR TEAM. YOUR NUMBER.</span><h1>MY JERSEY LOOK</h1><p>AI virtual try on for your favourite NHL hockey jersey.</p><span class="ai-badge">AI TRY ON</span></div>
     <section id="accessGate" class="access-gate" aria-labelledby="accessHeading">
       <h2 id="accessHeading">Have a referral code?</h2>
-      <p class="hint">My Jersey Look is available by invitation while we test it.</p>
+      <p class="hint">By invitation. Up to 5 AI generations per internet connection.</p>
       <form id="accessForm"><label class="field" for="accessCode">Referral code<input id="accessCode" type="text" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" required></label><p id="accessStatus" role="status" aria-live="polite"></p><button id="accessButton" type="submit">Enter My Jersey Look</button></form>
     </section>
     <div id="lookFlow" hidden>
     <div class="progress" aria-label="Step progress"><span class="active">1 <small>TEAM</small></span><span>2 <small>NUMBER</small></span><span>3 <small>PHOTO</small></span></div>
+    <p id="quotaStatus" class="hint compact" role="status"></p>
     <form id="lookForm" novalidate>
       <section class="step" data-step="0" aria-labelledby="teamHeading">
         <h2 id="teamHeading" tabindex="-1">Pick your team</h2><p class="hint">All 32 NHL teams. One home jersey for each.</p>
@@ -66,6 +67,6 @@
     <noscript><p>Please enable JavaScript to choose a jersey and create a look.</p></noscript>
   </main>
   <footer><p lang="zh-Hans">My Jersey Look 冰球球衣虚拟试穿：选 NHL 球队、填写号码、上传照片，生成 AI 试衣效果。</p><p>A fun visual preview. Check the real jersey size before buying.</p><p>Independent community project. Not affiliated with the NHL or its teams.</p></footer>
-  <script type="module" src="jersey-look.js?v=20261001-invite1"></script>
+  <script type="module" src="jersey-look.js?v=20261001-quota1"></script>
 </body>
 </html>

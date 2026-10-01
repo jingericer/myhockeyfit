@@ -1,7 +1,8 @@
 import {NHL_TEAMS} from './jersey-teams.mjs?v=1';
 const $=selector=>document.querySelector(selector);
 let step=0,team=null,person='',customJersey='',resultUrl='',busy=false,enabled=false,uploadVersion=0;
-let accessCode='';
+let accessCode='',remaining=0;
+function showQuota(value){if(Number.isInteger(value)){remaining=value;$('#quotaStatus').textContent=value?`${value} of 5 AI generations remaining.`:'All 5 AI generations have been used for this internet connection.';updateButton();}}
 const seen=new Set();
 function track(event){if(seen.has(event))return;seen.add(event);fetch('/api/usage-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{});}
 function status(message=''){$('#lookStatus').textContent=message;}
@@ -23,7 +24,7 @@ function updateReference(){
   $('#selectedTeam').textContent=team.name;$('#jerseyPreview').src=customJersey||team[view()];$('#jerseyPreview').alt=customJersey?'Your uploaded jersey':team.name+' home jersey';
   $('#numberPreview').textContent=number();$('.number-tag').hidden=!number();$('#jerseySource').href=team.source;$('#jerseySource').hidden=!!customJersey;$('#removeJersey').hidden=!customJersey;
 }
-function updateButton(){const valid=!!accessCode&&(step===0?!!team:step===1?validNumber():!!person&&$('#aiConsent').checked&&enabled);$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
+function updateButton(){const valid=!!accessCode&&(step===0?!!team:step===1?validNumber():!!person&&$('#aiConsent').checked&&enabled&&remaining>0);$('#nextButton').disabled=!valid||busy;$('#nextButton').textContent=step===2?'Create my look':'Continue';}
 function showStep(next,focus=true){step=next;document.querySelectorAll('.step').forEach((element,i)=>element.hidden=i!==step);document.querySelectorAll('.progress>span').forEach((element,i)=>{element.className=i===step?'active':i<step?'done':'';if(i===step)element.setAttribute('aria-current','step');else element.removeAttribute('aria-current');});$('#backButton').hidden=step===0;updateReference();updateButton();status();if(focus)$(`.step[data-step="${step}"] h2`).focus();}
 $('#teamChoices').addEventListener('click',event=>{const choice=event.target.closest('[data-team]');if(!choice)return;team=NHL_TEAMS.find(item=>item.id===choice.dataset.team);customJersey='';$('#customJersey').value='';renderTeams();updateButton();track('jersey_start');});
 $('#teamSearch').addEventListener('input',renderTeams);
@@ -54,7 +55,7 @@ async function readResult(response){
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',result;
   try{
     while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});if(buffer.length>10000000)throw Error('The generated image is too large.');let end;
-      while((end=buffer.indexOf('\n\n'))!==-1){const block=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=block.match(/^event: (.+)$/m)?.[1],payload=block.match(/^data: (.+)$/m)?.[1];if(!payload)continue;const data=JSON.parse(payload);if(event==='error')throw Error(data.error||'Could not create your look.');if(event==='progress')$('#creatingStatus').textContent=data.message;if(event==='result')result=data;}
+      while((end=buffer.indexOf('\n\n'))!==-1){const block=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=block.match(/^event: (.+)$/m)?.[1],payload=block.match(/^data: (.+)$/m)?.[1];if(!payload)continue;const data=JSON.parse(payload);if(event==='error')throw Error(data.error||'Could not create your look.');if(event==='progress'){$('#creatingStatus').textContent=data.message;showQuota(data.remaining);}if(event==='result')result=data;}
     }
   }finally{await reader.cancel().catch(()=>{});}
   if(!result||typeof result.image!=='string'||!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(result.image))throw Error('No image was returned. Please return later.');return result;
@@ -82,7 +83,7 @@ $('#accessForm').addEventListener('submit',async event=>{
     const candidate=$('#accessCode').value.trim().toUpperCase();
     const response=await fetch('/api/jersey-look',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'access',accessCode:candidate}),signal:AbortSignal.timeout(15000)});
     const data=await response.json();if(!response.ok||data.authorized!==true)throw Error(data.error||'Could not verify this code.');
-    accessCode=candidate;$('#accessCode').value='';$('#accessStatus').textContent='';$('#accessGate').hidden=true;$('#lookFlow').hidden=false;showStep(0);
+    accessCode=candidate;showQuota(data.remaining);$('#accessCode').value='';$('#accessStatus').textContent='';$('#accessGate').hidden=true;$('#lookFlow').hidden=false;showStep(0);
   }catch(error){$('#accessStatus').textContent=error.name==='TimeoutError'?'Code verification took too long. Please try again.':error.message||'Could not verify this code.';}
   finally{button.disabled=false;}
 });
