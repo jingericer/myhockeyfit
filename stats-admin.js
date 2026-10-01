@@ -2,7 +2,7 @@ const form=document.querySelector('#statsLogin'),password=document.querySelector
 let credential='',expiry,version=0;
 function signOut(message='Signed out.'){
   version++;credential='';clearTimeout(expiry);password.value='';form.hidden=false;content.hidden=true;statusLine.textContent=message;
-  for(const id of ['statsSummary','statsFunnels','statsPages','statsDays','statsVisitors'])document.getElementById(id).replaceChildren();
+  for(const id of ['statsSummary','statsJersey','statsFunnels','statsPages','statsDays','statsVisitors'])document.getElementById(id).replaceChildren();
 }
 function renderTable(target,headings,rows){
   const root=document.querySelector(target);root.replaceChildren();
@@ -19,6 +19,10 @@ function render(data){
     const card=document.createElement('article'),number=document.createElement('strong'),name=document.createElement('span');number.textContent=Number(value).toLocaleString();name.textContent=label;card.append(number,name);summary.append(card);
   }
   const events=new Map((data.events||[]).map(row=>[row.event,row]));
+  const jersey=document.querySelector('#statsJersey');jersey.replaceChildren();
+  for(const [label,event] of [['Code entries','jersey_access'],['AI calls','jersey_ai_request'],['Generated images','jersey_ai_result'],['Blocked by 5 call limit','jersey_limit_reached'],['Downloads','jersey_download']]){
+    const card=document.createElement('article'),number=document.createElement('strong'),name=document.createElement('span');number.textContent=Number(events.get(event)?.count||0).toLocaleString();name.textContent=label;card.append(number,name);jersey.append(card);
+  }
   const journeys=[['Stick finder','stick_start','stick_result','stick_model'],['Shin guard finder','shin_start','shin_result','shin_model'],['Existing stick','gear_stick_start','gear_stick_result'],['Existing skates','gear_skates_start','gear_skates_result'],['Existing gloves','gear_gloves_start','gear_gloves_result'],['Existing shin guards','gear_shin_start','gear_shin_result'],['Stick Photo Fit','photo_start','photo_completed'],['My Jersey Look','jersey_start','jersey_ai_result','jersey_download']];
   renderTable('#statsFunnels',['Tool','Started','Completed','Completion / starts','Model opens or downloads'],journeys.map(([name,start,done,model])=>{
     const starts=events.get(start)?.visitors||0,completed=events.get(done)?.visitors||0;
@@ -26,7 +30,7 @@ function render(data){
   }));
   renderTable('#statsPages',['Page','Views'],data.pages.map(row=>[row.page,row.views]));
   renderTable('#statsDays',['Date (UTC)','Views','Visitors','AI requests','AI results'],data.daily.map(row=>[row.day,row.views,row.visitors,row.aiRequests,row.aiResults]));
-  renderTable('#statsVisitors',['Date (UTC)','Visitor ID','Pages','Views','AI requests','AI results'],data.visitors.map(row=>[row.day,row.id,row.pages.join(', ')||'Photo Fit only',row.views,row.aiRequests,row.aiResults]));
+  renderTable('#statsVisitors',['Date (UTC)','Visitor ID','Pages','Views','All AI calls','All AI results','Jersey AI calls','Jersey images','Jersey limit blocks'],data.visitors.map(row=>[row.day,row.id,row.pages.join(', ')||'Photo Fit only',row.views,row.aiRequests,row.aiResults,row.jerseyRequests||0,row.jerseyResults||0,row.jerseyBlocked||0]));
 }
 async function loadStats(){
   const current=version;statusLine.textContent='Loading usage statistics…';

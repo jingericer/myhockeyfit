@@ -187,14 +187,15 @@ export class UsageStats {
       const daily=new Map(),pages=new Map(),visitors=new Map(),events=new Map(),all=new Set(),engaged=new Set(),completed=new Set();let pageViews=0,aiRequests=0,aiResults=0;
       for(const row of stats){
         const bucket=daily.get(row.day)||{day:row.day,views:0,visitors:new Set(),aiRequests:0,aiResults:0};
-        const who=visitors.get(row.day+':'+row.visitor)||{day:row.day,id:row.visitor,views:0,aiRequests:0,aiResults:0,pages:new Set()};
+        const who=visitors.get(row.day+':'+row.visitor)||{day:row.day,id:row.visitor,views:0,aiRequests:0,aiResults:0,jerseyRequests:0,jerseyResults:0,jerseyBlocked:0,pages:new Set()};
         if(row.kind==='page'){
           pageViews+=row.count;bucket.views+=row.count;bucket.visitors.add(row.visitor);all.add(row.day+':'+row.visitor);
           pages.set(row.page,(pages.get(row.page)||0)+row.count);who.views+=row.count;who.pages.add(row.page);
-        }else if(row.kind==='jersey_ai_request'||row.kind==='jersey_ai_result'){
+        }else if(['jersey_ai_request','jersey_ai_result','jersey_access','jersey_limit_reached'].includes(row.kind)){
           const entry=events.get(row.kind)||{event:row.kind,count:0,visitors:new Set()};entry.count+=row.count;entry.visitors.add(row.day+':'+row.visitor);events.set(row.kind,entry);engaged.add(row.day+':'+row.visitor);
-          if(row.kind==='jersey_ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;}
-          else{aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;completed.add(row.day+':'+row.visitor);}
+          if(row.kind==='jersey_ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;who.jerseyRequests+=row.count;}
+          else if(row.kind==='jersey_ai_result'){aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;who.jerseyResults+=row.count;completed.add(row.day+':'+row.visitor);}
+          else if(row.kind==='jersey_limit_reached')who.jerseyBlocked+=row.count;
           who.pages.add('My Jersey Look');
         }else if(row.kind==='ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;}
         else if(row.kind==='ai_result'){
@@ -218,9 +219,9 @@ export class UsageStats {
     }
     if(route!=='/record'||request.method!=='POST')return reply({error:'Not found'},404);
     let entry;try{entry=await request.json();}catch{return reply({error:'Invalid record'},400);}
-    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!(entry.page==='Interaction'&&usageEvents.includes(entry.kind)||entry.page==='My Jersey Look'&&['page','jersey_ai_request','jersey_ai_result'].includes(entry.kind)||['Home','Gear check','Volunteer testing','Project team','Photo Fit'].includes(entry.page)&&['page','ai_request','ai_result'].includes(entry.kind)))return reply({error:'Invalid record'},400);
+    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!(entry.page==='Interaction'&&usageEvents.includes(entry.kind)||entry.page==='My Jersey Look'&&['page','jersey_ai_request','jersey_ai_result','jersey_access','jersey_limit_reached'].includes(entry.kind)||['Home','Gear check','Volunteer testing','Project team','Photo Fit'].includes(entry.page)&&['page','ai_request','ai_result'].includes(entry.kind)))return reply({error:'Invalid record'},400);
     return this.state.blockConcurrencyWhile(async()=>{
-      const updateCount=entry.page==='Interaction'?'count=MIN(count+1,20)':'count=count+1';
+      const updateCount=entry.page==='Interaction'||['jersey_access','jersey_limit_reached'].includes(entry.kind)?'count=MIN(count+1,20)':'count=count+1';
       this.sql.exec(`INSERT INTO usage (day, visitor, page, kind, count) VALUES (?,?,?,?,1) ON CONFLICT(day,visitor,page,kind) DO UPDATE SET ${updateCount}`,entry.day,entry.visitor,entry.page,entry.kind);
       const since=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
       this.sql.exec('DELETE FROM usage WHERE day < ?',since);

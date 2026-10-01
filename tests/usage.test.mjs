@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
-import worker from '../worker.mjs';
+import worker,{UsageStats} from '../worker.mjs';
 globalThis.crypto ??= webcrypto;
 
 test('page visits record anonymous daily IDs, and usage reports require admin password',async()=>{
@@ -32,4 +32,15 @@ test('tool events are same-origin, fixed-name and contain no player answers',asy
   assert.equal(recorded[0].kind,'gear_gloves_result');
   assert.equal(recorded[0].page,'Interaction');
   assert(!JSON.stringify(recorded).includes('192.0.2.4'));
+});
+
+test('jersey admin report separates paid calls, images, code entries and quota blocks',async()=>{
+ const day=new Date().toISOString().slice(0,10),visitor='a'.repeat(20);
+ const rows=[['jersey_ai_request',3],['jersey_ai_result',2],['jersey_access',1],['jersey_limit_reached',4]].map(([kind,count])=>({day,visitor,page:'My Jersey Look',kind,count}));
+ const state={storage:{sql:{exec:query=>({toArray:()=>query.startsWith('SELECT day')?rows:[]})}}};
+ const data=await (await new UsageStats(state).fetch(new Request('https://stats/report'))).json();
+ assert.equal(data.summary.aiRequests,3);assert.equal(data.summary.aiResults,2);
+ assert.equal(data.visitors[0].jerseyRequests,3);assert.equal(data.visitors[0].jerseyResults,2);assert.equal(data.visitors[0].jerseyBlocked,4);
+ assert.equal(data.events.find(e=>e.event==='jersey_access').count,1);
+ assert.equal(data.events.find(e=>e.event==='jersey_limit_reached').count,4);
 });
