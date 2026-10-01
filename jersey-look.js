@@ -2,7 +2,7 @@ import {NHL_TEAMS} from './jersey-teams.mjs?v=1';
 const $=selector=>document.querySelector(selector);
 let step=0,team=null,person='',customJersey='',resultUrl='',busy=false,enabled=false,uploadVersion=0;
 let accessCode='',remaining=0;
-function showQuota(value){if(Number.isInteger(value)){remaining=value;$('#quotaStatus').textContent=value?`${value} of 5 AI generations remaining.`:'All 5 AI generations have been used for this internet connection.';updateButton();}}
+function showQuota(value){if(Number.isInteger(value)){remaining=value;$('#quotaStatus').textContent=value?`${value} of 2 AI generations remaining.`:'All 2 AI generations have been used for this internet connection.';updateButton();}}
 const seen=new Set();
 function track(event){if(seen.has(event))return;seen.add(event);fetch('/api/usage-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{});}
 function status(message=''){$('#lookStatus').textContent=message;}

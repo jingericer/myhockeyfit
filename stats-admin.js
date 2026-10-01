@@ -20,7 +20,7 @@ function render(data){
   }
   const events=new Map((data.events||[]).map(row=>[row.event,row]));
   const jersey=document.querySelector('#statsJersey');jersey.replaceChildren();
-  for(const [label,event] of [['Code entries','jersey_access'],['AI calls','jersey_ai_request'],['Generated images','jersey_ai_result'],['Blocked by 5 call limit','jersey_limit_reached'],['Downloads','jersey_download']]){
+  for(const [label,event] of [['Code entries','jersey_access'],['AI calls','jersey_ai_request'],['Generated images','jersey_ai_result'],['Blocked by 2 call limit','jersey_limit_reached'],['Downloads','jersey_download']]){
     const card=document.createElement('article'),number=document.createElement('strong'),name=document.createElement('span');number.textContent=Number(events.get(event)?.count||0).toLocaleString();name.textContent=label;card.append(number,name);jersey.append(card);
   }
   const journeys=[['Stick finder','stick_start','stick_result','stick_model'],['Shin guard finder','shin_start','shin_result','shin_model'],['Existing stick','gear_stick_start','gear_stick_result'],['Existing skates','gear_skates_start','gear_skates_result'],['Existing gloves','gear_gloves_start','gear_gloves_result'],['Existing shin guards','gear_shin_start','gear_shin_result'],['Stick Photo Fit','photo_start','photo_completed'],['My Jersey Look','jersey_start','jersey_ai_result','jersey_download']];

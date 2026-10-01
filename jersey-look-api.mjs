@@ -58,7 +58,7 @@ async function jerseyQuota(request,env,reserve=false){
   const response=await env.PHOTO_HOURLY.get(env.PHOTO_HOURLY.idFromName(key)).fetch('https://limiter/'+(reserve?'jersey-use':'jersey-status'),{method:reserve?'POST':'GET'});
   if(!response.ok)throw Error('quota unavailable');
   const data=await response.json();
-  if(typeof data.allowed!=='boolean'||!Number.isInteger(data.remaining)||data.remaining<0||data.remaining>5)throw Error('invalid quota');
+  if(typeof data.allowed!=='boolean'||!Number.isInteger(data.remaining)||data.remaining<0||data.remaining>2)throw Error('invalid quota');
   return data;
 }
 export async function handleJerseyLook(request,env,ctx,{reply,readLimited,recordUsage}){
@@ -84,7 +84,7 @@ export async function handleJerseyLook(request,env,ctx,{reply,readLimited,record
   const denied=await reserveSlot(request,env,reply);if(denied)return denied;
   let reference;try{reference=body.jersey?photoBlob(body.jersey):await referenceBlob(team[body.view],request,env);}catch{return reply({error:'The team jersey photo could not be loaded. Upload a jersey photo or return later.'},502);}
   let quota;try{quota=await jerseyQuota(request,env,true);}catch{return reply({error:'Could not check your remaining uses. Please return later.'},503);}
-  if(!quota.allowed){await recordUsage(request,env,ctx,'My Jersey Look','jersey_limit_reached');return reply({error:'You have used all 5 My Jersey Look generations for this internet connection. This limit keeps the community project affordable. Refreshing or reentering your code will not reset it.'},429);}
+  if(!quota.allowed){await recordUsage(request,env,ctx,'My Jersey Look','jersey_limit_reached');return reply({error:'You have used all 2 My Jersey Look generations for this internet connection. This limit keeps the community project affordable. Refreshing or reentering your code will not reset it.'},429);}
   const form=new FormData();
   form.append('model','gpt-image-1.5');form.append('n','1');form.append('size','1024x1536');form.append('quality','medium');form.append('input_fidelity','high');form.append('output_format','jpeg');form.append('output_compression','85');form.append('moderation','auto');
   form.append('image[]',photoBlob(body.person),'person.jpg');form.append('image[]',reference,reference.type==='image/png'?'jersey.png':'jersey.jpg');

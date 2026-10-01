@@ -149,10 +149,10 @@ export class PhotoHourlyLimiter {
       if(request.method!==(path==='/jersey-status'?'GET':'POST'))return new Response('Method not allowed',{status:405});
       return this.state.blockConcurrencyWhile(async()=>{
         const used=await this.state.storage.get('jerseyUses')||0;
-        if(path==='/jersey-status')return Response.json({allowed:used<5,remaining:Math.max(0,5-used)});
-        if(used>=5)return Response.json({allowed:false,remaining:0});
+        if(path==='/jersey-status')return Response.json({allowed:used<2,remaining:Math.max(0,2-used)});
+        if(used>=2)return Response.json({allowed:false,remaining:0});
         await this.state.storage.put('jerseyUses',used+1);
-        return Response.json({allowed:true,remaining:4-used});
+        return Response.json({allowed:true,remaining:1-used});
       });
     }
     if (request.method !== 'POST') return new Response('Method not allowed',{status:405});

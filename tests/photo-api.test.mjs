@@ -66,8 +66,10 @@ test('jersey lifetime quota is atomic, survives restarts and alarms, and stays s
  const state={storage:{get:async k=>data.get(k),put:async(k,v)=>data.set(k,v),setAlarm:async()=>{},deleteAll:async()=>data.clear()},blockConcurrencyWhile:fn=>{const next=queue.then(fn);queue=next.catch(()=>{});return next;}};
  const gate=new PhotoHourlyLimiter(state);const use=()=>new Request('https://limiter/jersey-use',{method:'POST'});
  const burst=await Promise.all(Array.from({length:8},()=>gate.fetch(use()).then(r=>r.json())));
- assert.equal(burst.filter(r=>r.allowed).length,5);assert.equal(data.get('jerseyUses'),5);
+ assert.equal(burst.filter(r=>r.allowed).length,2);assert.equal(data.get('jerseyUses'),2);
  const restarted=new PhotoHourlyLimiter(state);await restarted.alarm();assert.equal((await (await restarted.fetch(use())).json()).allowed,false);
  assert.deepEqual(await (await restarted.fetch(new Request('https://limiter/jersey-status'))).json(),{allowed:false,remaining:0});
+ data.set('jerseyUses',5);assert.equal((await (await restarted.fetch(use())).json()).allowed,false);assert.equal(data.get('jerseyUses'),5);
+ data.set('jerseyUses',1);assert.deepEqual(await (await restarted.fetch(new Request('https://limiter/jersey-status'))).json(),{allowed:true,remaining:1});
  assert.equal((await (await restarted.fetch(new Request('https://limiter/check',{method:'POST'}))).json()).allowed,true);
 });
