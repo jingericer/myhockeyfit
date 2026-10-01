@@ -4,17 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6fafb">
-  <meta name="description" content="See yourself in your favourite NHL jersey. Pick a team, choose your number and create an AI jersey look with MyHockeyFit.">
-  <title>My Jersey Look | MyHockeyFit</title>
+  <meta name="description" content="Try on an NHL hockey jersey virtually with My Jersey Look. Choose from 32 teams, add your number and upload a photo for an AI jersey preview.">
+  <title>My Jersey Look | AI NHL Jersey Virtual Try On</title>
+  <link rel="canonical" href="https://myhockeyfit.com/jersey-look">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MyHockeyFit">
+  <meta property="og:title" content="My Jersey Look | AI NHL Jersey Virtual Try On">
+  <meta property="og:description" content="Choose your NHL team, add your number and see yourself in the jersey with AI virtual try on.">
+  <meta property="og:url" content="https://myhockeyfit.com/jersey-look">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="My Jersey Look | AI NHL Jersey Virtual Try On">
+  <meta name="twitter:description" content="Choose your NHL team, add your number and create your jersey look.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="jersey-look.css?v=1">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "My Jersey Look", "url": "https://myhockeyfit.com/jersey-look", "description": "AI virtual try on for NHL hockey jerseys with a personal photo and custom jersey number. A visual preview, not a real size or fit assessment.", "applicationCategory": "LifestyleApplication", "operatingSystem": "Web browser", "inLanguage": "en", "isAccessibleForFree": true, "featureList": ["32 NHL teams", "Custom jersey numbers", "Photo based virtual jersey try on", "Downloadable AI preview"], "publisher": {"@type": "Organization", "name": "MyHockeyFit", "url": "https://myhockeyfit.com/"}}</script>
 </head>
 <body>
   <header><a class="brand" href="/">MYHOCKEY<span>FIT</span></a><a class="home" href="/">Equipment</a></header>
   <main>
-    <div class="intro"><span class="eyebrow">YOUR TEAM. YOUR NUMBER.</span><h1>MY JERSEY LOOK</h1><p>See yourself in your favourite hockey jersey.</p><span class="ai-badge">AI TRY ON</span></div>
+    <div class="intro"><span class="eyebrow">YOUR TEAM. YOUR NUMBER.</span><h1>MY JERSEY LOOK</h1><p>AI virtual try on for your favourite NHL hockey jersey.</p><span class="ai-badge">AI TRY ON</span></div>
     <div class="progress" aria-label="Step progress"><span class="active">1 <small>TEAM</small></span><span>2 <small>NUMBER</small></span><span>3 <small>PHOTO</small></span></div>
     <form id="lookForm" novalidate>
       <section class="step" data-step="0" aria-labelledby="teamHeading">
@@ -47,7 +58,7 @@
     <section id="lookResult" class="result" hidden aria-labelledby="resultHeading"><span class="eyebrow">YOUR GAME DAY LOOK</span><h2 id="resultHeading" tabindex="-1">Made for your imagination</h2><p id="resultTeam" class="hint"></p><div class="result-image"><img id="resultImage" alt="AI preview of your selected hockey jersey"><span>AI PREVIEW</span></div><p class="hint compact">AI preview. Actual fit, logos and numbers may vary.</p><div class="result-actions"><button id="downloadLook" type="button">Download my look</button><button id="anotherLook" type="button" class="secondary">Try another jersey</button><button id="clearLook" type="button" class="text-button">Clear photos and result</button></div></section>
     <noscript><p>Please enable JavaScript to choose a jersey and create a look.</p></noscript>
   </main>
-  <footer><p>A fun visual preview. Check the real jersey size before buying.</p><p>Independent community project. Not affiliated with the NHL or its teams.</p></footer>
+  <footer><p lang="zh-Hans">My Jersey Look 冰球球衣虚拟试穿：选 NHL 球队、填写号码、上传照片，生成 AI 试衣效果。</p><p>A fun visual preview. Check the real jersey size before buying.</p><p>Independent community project. Not affiliated with the NHL or its teams.</p></footer>
   <script type="module" src="jersey-look.js?v=1"></script>
 </body>
 </html>
