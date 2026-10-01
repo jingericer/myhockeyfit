@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6fafb">
+  <meta name="description" content="See yourself in your favourite NHL jersey. Pick a team, choose your number and create an AI jersey look with MyHockeyFit.">
+  <title>My Jersey Look | MyHockeyFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="jersey-look.css?v=1">
+</head>
+<body>
+  <header><a class="brand" href="/">MYHOCKEY<span>FIT</span></a><a class="home" href="/">Equipment</a></header>
+  <main>
+    <div class="intro"><span class="eyebrow">YOUR TEAM. YOUR NUMBER.</span><h1>MY JERSEY LOOK</h1><p>See yourself in your favourite hockey jersey.</p><span class="ai-badge">AI TRY ON</span></div>
+    <div class="progress" aria-label="Step progress"><span class="active">1 <small>TEAM</small></span><span>2 <small>NUMBER</small></span><span>3 <small>PHOTO</small></span></div>
+    <form id="lookForm" novalidate>
+      <section class="step" data-step="0" aria-labelledby="teamHeading">
+        <h2 id="teamHeading" tabindex="-1">Pick your team</h2><p class="hint">All 32 NHL teams. One home jersey for each.</p>
+        <label class="search-label" for="teamSearch">Find a team<input id="teamSearch" type="search" placeholder="Team or city" autocomplete="off"></label>
+        <div id="teamChoices" class="team-grid" role="group" aria-label="NHL teams"></div><p id="noTeams" class="hint" hidden>No teams found. Try a city name.</p>
+      </section>
+      <section class="step" data-step="1" hidden aria-labelledby="numberHeading">
+        <h2 id="numberHeading" tabindex="-1">Make it yours</h2><p class="hint" id="selectedTeam"></p>
+        <div class="jersey-reference"><img id="jerseyPreview" alt="Selected home jersey" width="320" height="320"><div class="number-tag" aria-label="Selected number">#<span id="numberPreview">22</span></div></div>
+        <label class="field" for="jerseyNumber">Your number<input id="jerseyNumber" type="text" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" value="22" autocomplete="off"><small>0 to 99. Leave empty for no number.</small></label>
+        <p class="hint compact">Front views show your number on the sleeves. Back views show it on the back.</p>
+        <details class="custom-jersey"><summary>Use a different jersey photo</summary><p class="hint compact">Upload a clear jersey photo for another colour or design.</p><label class="upload-button">Choose jersey photo<input id="customJersey" type="file" accept="image/*"></label><button id="removeJersey" class="text-button" type="button" hidden>Use team jersey</button></details>
+        <a id="jerseySource" class="source" target="_blank" rel="noopener noreferrer">Jersey reference from NHL Shop Canada</a>
+      </section>
+      <section class="step" data-step="2" hidden aria-labelledby="photoHeading">
+        <h2 id="photoHeading" tabindex="-1">Add your photo</h2><p class="hint">One person, fully clothed. Include your head, arms and hips.</p>
+        <div class="photo-direction" role="group" aria-label="Photo direction"><button type="button" data-view="front" class="selected" aria-pressed="true">Front view</button><button type="button" data-view="back" aria-pressed="false">Back view</button></div>
+        <p id="poseHint" class="hint compact">Face the camera with your arms slightly away from your body.</p>
+        <div id="photoEmpty" class="photo-empty"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 28h16l6-8h16l6 8h16v52H20z"/><circle cx="50" cy="52" r="16"/></svg><p>Your photo stays here until you create your look.</p></div>
+        <img id="personPreview" class="person-preview" alt="Your photo for virtual try on" hidden>
+        <div class="upload-actions"><label class="upload-button">Take photo<input id="personCamera" type="file" accept="image/*" capture="environment"></label><label class="upload-button secondary">Upload photo<input id="personUpload" type="file" accept="image/*"></label><button id="removePhoto" class="text-button" type="button" hidden>Remove photo</button></div>
+        <label class="consent"><input id="aiConsent" type="checkbox"><span>I have permission to use this photo and send it to OpenAI. For a child, a parent or guardian agrees.</span></label>
+        <p class="privacy">MyHockeyFit does not save your photos or result. OpenAI processes them under its data policy.</p>
+      </section>
+      <p id="lookStatus" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="backButton" type="button" class="secondary" hidden>Back</button><button id="nextButton" type="submit" disabled>Continue</button></div>
+    </form>
+    <section id="creating" class="creating" hidden aria-live="polite"><div class="spinner" aria-hidden="true"></div><h2>Creating your look</h2><p id="creatingStatus">Giving your jersey a new home.</p><p class="hint">This can take a minute or two. Keep this page open.</p></section>
+    <section id="lookResult" class="result" hidden aria-labelledby="resultHeading"><span class="eyebrow">YOUR GAME DAY LOOK</span><h2 id="resultHeading" tabindex="-1">Made for your imagination</h2><p id="resultTeam" class="hint"></p><div class="result-image"><img id="resultImage" alt="AI preview of your selected hockey jersey"><span>AI PREVIEW</span></div><p class="hint compact">AI preview. Actual fit, logos and numbers may vary.</p><div class="result-actions"><button id="downloadLook" type="button">Download my look</button><button id="anotherLook" type="button" class="secondary">Try another jersey</button><button id="clearLook" type="button" class="text-button">Clear photos and result</button></div></section>
+    <noscript><p>Please enable JavaScript to choose a jersey and create a look.</p></noscript>
+  </main>
+  <footer><p>A fun visual preview. Check the real jersey size before buying.</p><p>Independent community project. Not affiliated with the NHL or its teams.</p></footer>
+  <script type="module" src="jersey-look.js?v=1"></script>
+</body>
+</html>

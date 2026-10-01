@@ -2,6 +2,7 @@
 node_modules/
 tests/
 worker.mjs
+jersey-look-api.mjs
 wrangler.jsonc
 *.md
 package*.json

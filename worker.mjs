@@ -1,3 +1,4 @@
+import {handleJerseyLook} from './jersey-look-api.mjs';
 const MAX_BYTES = 2200000;
 const statuses = ['short', 'starting_range', 'long', 'retake'];
 const checkIds = ['player', 'skates', 'framing', 'posture', 'stick_vertical', 'toe_contact', 'landmarks'];
@@ -28,8 +29,8 @@ Only for a suitable photo, use the footwear stated in the user message. With ice
 Never infer flex, stiffness, player identity, age, skill, exact centimetres, cutting amounts, blade lie, or protective safety. Never recommend cutting based on this photo alone.
 Return concise English: reason at most 30 words describing visible evidence; next_step at most 25 words giving a practical next action. For starting_range advise confirming comfort and control with a coach or fitter. For short or long advise a physical fitting check before changes. No markdown or decorative hyphens.`;
 const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
-const trackedPages={'/':'Home','/index.html':'Home','/gear-check.html':'Gear check','/volunteer.html':'Volunteer testing','/team.html':'Project team'};
-const usageEvents=['stick_start','stick_result','stick_model','shin_start','shin_result','shin_model','gear_stick_start','gear_stick_result','gear_skates_start','gear_skates_result','gear_gloves_start','gear_gloves_result','gear_shin_start','gear_shin_result','photo_start','photo_manual_result'];
+const trackedPages={'/':'Home','/index.html':'Home','/gear-check.html':'Gear check','/jersey-look.html':'My Jersey Look','/jersey-look':'My Jersey Look','/volunteer.html':'Volunteer testing','/team.html':'Project team'};
+const usageEvents=['stick_start','stick_result','stick_model','shin_start','shin_result','shin_model','gear_stick_start','gear_stick_result','gear_skates_start','gear_skates_result','gear_gloves_start','gear_gloves_result','gear_shin_start','gear_shin_result','photo_start','photo_manual_result','jersey_start','jersey_download'];
 async function recordUsage(request,env,ctx,page,kind){
   try{
     if(!env.USAGE_STATS||!env.FEEDBACK_ADMIN_TOKEN)return;
@@ -80,6 +81,7 @@ export default {
       return reply({ok:true});
     }
     if (url.pathname === '/api/feedback') return handleFeedback(request,env);
+    if (url.pathname === '/api/jersey-look') return handleJerseyLook(request,env,ctx,{reply,readLimited,recordUsage});
     if (url.pathname === '/api/team-apply' || url.pathname === '/api/team-applications') return handleTeam(request,env);
     if (url.pathname !== '/api/photo-fit') return reply({error:'Not found'}, 404);
     const enabled = !!env.OPENAI_API_KEY && !!env.PHOTO_LIMITER && !!env.PHOTO_HOURLY;
@@ -178,6 +180,11 @@ export class UsageStats {
         if(row.kind==='page'){
           pageViews+=row.count;bucket.views+=row.count;bucket.visitors.add(row.visitor);all.add(row.day+':'+row.visitor);
           pages.set(row.page,(pages.get(row.page)||0)+row.count);who.views+=row.count;who.pages.add(row.page);
+        }else if(row.kind==='jersey_ai_request'||row.kind==='jersey_ai_result'){
+          const entry=events.get(row.kind)||{event:row.kind,count:0,visitors:new Set()};entry.count+=row.count;entry.visitors.add(row.day+':'+row.visitor);events.set(row.kind,entry);engaged.add(row.day+':'+row.visitor);
+          if(row.kind==='jersey_ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;}
+          else{aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;completed.add(row.day+':'+row.visitor);}
+          who.pages.add('My Jersey Look');
         }else if(row.kind==='ai_request'){aiRequests+=row.count;bucket.aiRequests+=row.count;who.aiRequests+=row.count;}
         else if(row.kind==='ai_result'){
           aiResults+=row.count;bucket.aiResults+=row.count;who.aiResults+=row.count;completed.add(row.day+':'+row.visitor);
@@ -200,7 +207,7 @@ export class UsageStats {
     }
     if(route!=='/record'||request.method!=='POST')return reply({error:'Not found'},404);
     let entry;try{entry=await request.json();}catch{return reply({error:'Invalid record'},400);}
-    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!(entry.page==='Interaction'&&usageEvents.includes(entry.kind)||['Home','Gear check','Volunteer testing','Project team','Photo Fit'].includes(entry.page)&&['page','ai_request','ai_result'].includes(entry.kind)))return reply({error:'Invalid record'},400);
+    if(!/^\d{4}-\d\d-\d\d$/.test(entry.day||'')||!/^[0-9a-f]{20}$/.test(entry.visitor||'')||!(entry.page==='Interaction'&&usageEvents.includes(entry.kind)||entry.page==='My Jersey Look'&&['page','jersey_ai_request','jersey_ai_result'].includes(entry.kind)||['Home','Gear check','Volunteer testing','Project team','Photo Fit'].includes(entry.page)&&['page','ai_request','ai_result'].includes(entry.kind)))return reply({error:'Invalid record'},400);
     return this.state.blockConcurrencyWhile(async()=>{
       const updateCount=entry.page==='Interaction'?'count=MIN(count+1,20)':'count=count+1';
       this.sql.exec(`INSERT INTO usage (day, visitor, page, kind, count) VALUES (?,?,?,?,1) ON CONFLICT(day,visitor,page,kind) DO UPDATE SET ${updateCount}`,entry.day,entry.visitor,entry.page,entry.kind);
