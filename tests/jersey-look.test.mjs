@@ -74,15 +74,15 @@ test('exhausted or unavailable jersey quota never reaches the paid image endpoin
  }finally{globalThis.fetch=original;}
 });
 
-test('All 76 Blazers, Blazer and existing invites are accepted without spending AI quota',async()=>{
+test('PIN and all 76 existing invites are accepted without spending AI quota',async()=>{
  const env=environment();delete env.JERSEY_ACCESS_CODE_HASH;let paid=0,reservations=0;
  const original=globalThis.fetch;globalThis.fetch=async()=>{paid++;throw Error('unexpected AI call');};
  env.PHOTO_HOURLY.get=()=>({fetch:async url=>{if(String(url).endsWith('/jersey-use'))reservations++;return Response.json({allowed:true,remaining:2});}});
  try{
-  for(const code of ['repb',...Array.from({length:35},(_,i)=>'blazers'+(i+1)),...Array.from({length:40},(_,i)=>'blazer'+(i+1))]){
+  for(const code of ['pin','repb',...Array.from({length:35},(_,i)=>'blazers'+(i+1)),...Array.from({length:40},(_,i)=>'blazer'+(i+1))]){
    const response=await worker.fetch(request({action:'access',accessCode:code}),env);assert.equal(response.status,200,code);assert.deepEqual(await response.json(),{authorized:true,remaining:2});
   }
-  assert.equal((await worker.fetch(request({action:'access',accessCode:' BLAZER40 '}),env)).status,200);
+  assert.equal((await worker.fetch(request({action:'access',accessCode:' PiN '}),env)).status,200);
   for(const code of ['blazers0','blazers36','blazer0','blazer41','blazers02','blazer01','blazer','blazers'])assert.equal((await worker.fetch(request({action:'access',accessCode:code}),env)).status,403,code);
   assert.equal(paid,0);assert.equal(reservations,0);
  }finally{globalThis.fetch=original;}

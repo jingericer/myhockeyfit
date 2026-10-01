@@ -3,6 +3,7 @@ import {validateLookInput} from './jersey-look-utils.mjs';
 const MAX_LOOK_BYTES=3500000;
 // Only code hashes are deployed. JERSEY_ACCESS_CODE_HASH overrides the invite list.
 const DEFAULT_ACCESS_HASHES=[
+  '709e58acb65ef4a59dbe454de9d7fd7a6f3d5c31b24d757285c60b850941071d',
   '4865e6f8f411315d7aa2a69e5118da08dfd4d668276b838edf15079e02e78a92',
   'e29ab51a2cbfef622989ca3fca547270e6b9ec4f8ab8c96a049310687126f6a8',
   '97257566cda5470a9ef7656bb1164142229e90453c840eb5022a8b85f7ec2b83',
@@ -83,7 +84,7 @@ const DEFAULT_ACCESS_HASHES=[
 async function validAccess(value,env){
   if(typeof value!=='string'||value.length>64)return false;
   const normalized=value.trim().toUpperCase();
-  if(!/^[A-Z0-9]{4,64}$/.test(normalized))return false;
+  if(!/^[A-Z0-9]{3,64}$/.test(normalized))return false;
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(normalized));
   const actual=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
   const expected=env.JERSEY_ACCESS_CODE_HASH?[env.JERSEY_ACCESS_CODE_HASH]:DEFAULT_ACCESS_HASHES;
