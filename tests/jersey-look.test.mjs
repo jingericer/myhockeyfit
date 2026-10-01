@@ -73,3 +73,17 @@ test('exhausted or unavailable jersey quota never reaches the paid image endpoin
   env.PHOTO_HOURLY.get=()=>({fetch:async()=>Response.json({allowed:true})});assert.equal((await worker.fetch(request(),env)).status,503);assert.equal(calls,0);
  }finally{globalThis.fetch=original;}
 });
+
+test('Blazers invites 2 through 34 and the existing code are accepted without spending AI quota',async()=>{
+ const env=environment();delete env.JERSEY_ACCESS_CODE_HASH;let paid=0,reservations=0;
+ const original=globalThis.fetch;globalThis.fetch=async()=>{paid++;throw Error('unexpected AI call');};
+ env.PHOTO_HOURLY.get=()=>({fetch:async url=>{if(String(url).endsWith('/jersey-use'))reservations++;return Response.json({allowed:true,remaining:2});}});
+ try{
+  for(const code of ['repb',...Array.from({length:33},(_,i)=>'blazers'+(i+2))]){
+   const response=await worker.fetch(request({action:'access',accessCode:code}),env);assert.equal(response.status,200,code);assert.deepEqual(await response.json(),{authorized:true,remaining:2});
+  }
+  assert.equal((await worker.fetch(request({action:'access',accessCode:' BLAZERS34 '}),env)).status,200);
+  for(const code of ['blazers1','blazers35','blazers02','blazers'])assert.equal((await worker.fetch(request({action:'access',accessCode:code}),env)).status,403,code);
+  assert.equal(paid,0);assert.equal(reservations,0);
+ }finally{globalThis.fetch=original;}
+});

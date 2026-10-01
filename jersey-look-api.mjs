@@ -1,17 +1,53 @@
 import {NHL_TEAMS} from './jersey-teams.mjs';
 const MAX_LOOK_BYTES=3500000;
-// Only a hash is deployed. Set JERSEY_ACCESS_CODE_HASH to rotate it without a code change.
-const DEFAULT_ACCESS_HASH='4865e6f8f411315d7aa2a69e5118da08dfd4d668276b838edf15079e02e78a92';
+// Only code hashes are deployed. JERSEY_ACCESS_CODE_HASH overrides the invite list.
+const DEFAULT_ACCESS_HASHES=[
+  "4865e6f8f411315d7aa2a69e5118da08dfd4d668276b838edf15079e02e78a92",
+  "97257566cda5470a9ef7656bb1164142229e90453c840eb5022a8b85f7ec2b83",
+  "679b5424bbf5a3348004f65a91f65c338b4ed4e34ea46a5dd18e40b12ddeae2d",
+  "17fc48aa636129c430d82e3547adb62e2fdf11c78a70973258e76528fe1a4789",
+  "e1cc70d78da0001a0dbe70d09483cccdaa623b84137f8467a702373e3a921597",
+  "5acfc284ddcaf4e2b76add8585af5689fd85f0eccae021c6bbf65d947d433eeb",
+  "dca5d97d4cf523221a299bda812b9edc67e78a8319ab20a479ad7085eeb175a1",
+  "6dea1ad947eadce343c8cbb4021a622120c024e4de5979cda04bad6714cf6f00",
+  "71a101560c7fc450c76f6201a09873af5e9e822ed2aa299495540a1eaae27b17",
+  "8b2a986c5b3f2e746688a51de33c45b1fe8be60f34f3084a2c4d92c330816a53",
+  "402f694cbb1796791a5f54655291d74727f3f21ee9738a3e54abe1cdca4e9b0b",
+  "4fe3ecaf2766086073d511cf53434edb89702b4c6ea957b60ba6643608b7b1c2",
+  "7d9c0b75ababf574bcbf097221c57074cf99933af48af08db67fc7f025a5d204",
+  "22bf86b7adce16a3c4826694eb03c081651c88a269b94da13f3c95d6db57537b",
+  "9563f696d5e1e8beb36078ba8186c8d1d2f45de243dbccd9131e617302969074",
+  "ded14c2eeefadfe420ea90a0ff0f11a2451f666df83552c7c32393a8982ab073",
+  "77318450f397ae2d972b955db29d09aad957e664ad9e85ab61a1295f5d2bdf01",
+  "09a344af921d78fd1ecdfc0503ccc831db033f7825894d7766a09af2ba1d8335",
+  "26dd3eabf7d256a9b839b889bfb39afeecdd39b31be3378d20776e9df4ce2a45",
+  "74013c64b26764bb697ac84306bd6f65235f3d8680755d4964f82103b533c909",
+  "aafd6ccfb832895ae2e2e97611ce0d513727146c4fb028bf4057559991bb8feb",
+  "85651421bd615e141baaca7dc56ef7c6483a42d3869f7dcf42e71ad65f5b9ee0",
+  "7c9940032154c39cd0ba16d9abe84824c13d269675414d70eaaba4c65c703457",
+  "0fb3dff8b4c539cc5ad0567d204e0092ca0a9c60915be4079e3068905d0751c8",
+  "c3b2f300458895d78bde9587986cc827506f228f16a524326b12ff9872032a9d",
+  "87dd2271898f34fe11ae48cd530bd6d9796342c7840be82918ac84d2be132183",
+  "3f2dfa3474d4278f47322579049174cc62815a74500ff207a102489705f5ad24",
+  "6cf2cd5f4935e0b6a7653b4489bdd21f057e3c4597ad19aba74f1215e3efdd0e",
+  "8285b0482a1a5e83da726966684e7da6f28ff42fe6886c994f5b4cf8b1377a9c",
+  "f2a2e5da41648607712cf81960e73aa8df7ba6a2c972eac8bd2fcfb41ab2452b",
+  "befc0a739a0ac1b3c61fcc29ca06019e99cbeed25953d1b6e2cfc3ee3aa900e4",
+  "0425bf6964e8514f5e703f8979a1ad890365d3fa000401648f84a9ef1025aa0e",
+  "1a9dd7cfab87ae416e75ac7834d01bac45e2fdbc212a66c94e603f9cf3833b54",
+  "54fde7655f79ff3cf25ceafe043b3c5e501eb3f005700c0e389fa6c9a24d6221"
+];
 async function validAccess(value,env){
   if(typeof value!=='string'||value.length>64)return false;
   const normalized=value.trim().toUpperCase();
   if(!/^[A-Z0-9]{4,64}$/.test(normalized))return false;
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(normalized));
   const actual=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
-  const expected=env.JERSEY_ACCESS_CODE_HASH||DEFAULT_ACCESS_HASH;
-  if(!/^[a-f0-9]{64}$/.test(expected))return false;
-  let difference=0;for(let i=0;i<64;i++)difference|=actual.charCodeAt(i)^expected.charCodeAt(i);
-  return difference===0;
+  const expected=env.JERSEY_ACCESS_CODE_HASH?[env.JERSEY_ACCESS_CODE_HASH]:DEFAULT_ACCESS_HASHES;
+  if(expected.some(hash=>!/^[a-f0-9]{64}$/.test(hash)))return false;
+  let accepted=0;
+  for(const hash of expected){let difference=0;for(let i=0;i<64;i++)difference|=actual.charCodeAt(i)^hash.charCodeAt(i);accepted|=Number(difference===0);}
+  return accepted===1;
 }
 async function accessAttempt(request,env,reply){
   try{
