@@ -3,3 +3,5 @@
 .access-gate{margin:32px 0;padding-top:24px;border-top:1px solid #d9e5e9}.access-gate .field input{max-width:340px;font:600 18px Inter,system-ui,sans-serif;text-transform:uppercase}.access-gate button{border:0;background:#071426;color:#fff;border-radius:10px;padding:14px 18px;font-weight:700;font-size:13px}.access-gate button:disabled{opacity:.4}.access-gate #accessStatus{font-size:13px;color:#ac4834;line-height:1.5}
 
 .jersey-mode{margin:20px 0;max-width:400px}.jersey-mode button{min-height:44px}
+
+.jersey-about{margin-top:36px;padding-top:24px;border-top:1px solid #d9e5e9;max-width:700px}.jersey-about h2{font-size:24px}.jersey-about p{font-size:13px;line-height:1.6;color:#607985}
